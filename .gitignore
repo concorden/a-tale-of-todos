@@ -1,0 +1,32 @@
+# Swift Package Manager and app builds
+.build/
+build/
+DerivedData/
+*.app/
+*.dSYM/
+
+# Xcode user-specific state
+xcuserdata/
+*.xcuserstate
+
+# macOS metadata
+.DS_Store
+.AppleDouble
+._*
+
+# Local databases, recovery files, and backups
+*.sqlite
+*.sqlite-journal
+*.sqlite-wal
+*.sqlite-shm
+*.sqlite.backup
+*.sqlite3
+*.sqlite3-journal
+*.sqlite3-wal
+*.sqlite3-shm
+*.sqlite3.backup
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+*.db.backup
