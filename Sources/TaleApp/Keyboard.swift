@@ -59,6 +59,7 @@ struct NavigationKeyboard: NSViewRepresentable {
 /// A wrapping plain-text editor. Return submits; pasted line breaks are flattened.
 struct ComposerEditor: NSViewRepresentable {
     @Binding var text: String
+    @Environment(\.colorScheme) private var colorScheme
     let isInput: Bool
     let submit: () -> Void
     let escape: () -> Void
@@ -75,8 +76,8 @@ struct ComposerEditor: NSViewRepresentable {
         editor.importsGraphics = false
         editor.drawsBackground = false
         editor.font = NSFont.systemFont(ofSize: 15)
-        editor.textColor = .labelColor
-        editor.insertionPointColor = .labelColor
+        editor.textColor = TalePalette(colorScheme: colorScheme).editorInk
+        editor.insertionPointColor = editor.textColor
         editor.textContainerInset = NSSize(width: 0, height: 3)
         editor.isVerticallyResizable = true
         editor.isHorizontallyResizable = false
@@ -98,6 +99,8 @@ struct ComposerEditor: NSViewRepresentable {
     func updateNSView(_ scroll: NSScrollView, context: Context) {
         context.coordinator.parent = self
         guard let editor = scroll.documentView as? PlainTextView else { return }
+        editor.textColor = TalePalette(colorScheme: colorScheme).editorInk
+        editor.insertionPointColor = editor.textColor
         editor.activate = activate
         editor.submit = submit
         editor.escape = escape

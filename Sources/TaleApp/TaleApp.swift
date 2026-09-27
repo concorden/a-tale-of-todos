@@ -3,18 +3,44 @@ import SwiftUI
 // Explicitly use the property wrapper on SDKs that also define a State macro.
 private typealias ViewState<Value> = SwiftUI.State<Value>
 
+private enum AppAppearance: String, CaseIterable {
+    case system, light, dark
+
+    var title: String { rawValue.capitalized }
+
+    var colorScheme: ColorScheme? {
+        switch self {
+        case .system: nil
+        case .light: .light
+        case .dark: .dark
+        }
+    }
+}
+
 @main
 struct TaleApp: App {
     @ViewState private var model = AppModel()
+    @AppStorage("appearance") private var appearance: AppAppearance = .system
 
     var body: some Scene {
         Window("A Tale of Todos", id: "main") {
             ContentView(model: model)
                 .frame(minWidth: 540, minHeight: 520)
+                .preferredColorScheme(appearance.colorScheme)
         }
         .defaultSize(width: 780, height: 820)
         .windowStyle(.hiddenTitleBar)
         .commands {
+            CommandGroup(after: .toolbar) {
+                Menu("Appearance") {
+                    Picker("Appearance", selection: $appearance) {
+                        ForEach(AppAppearance.allCases, id: \.self) { option in
+                            Text(option.title).tag(option)
+                        }
+                    }
+                    .pickerStyle(.inline)
+                }
+            }
             CommandGroup(replacing: .newItem) {
                 Button("Create Database…", action: model.createDatabase)
                 Button(model.databaseURL == nil ? "Open Database…" : "Change Database…", action: model.openDatabase)

@@ -37,7 +37,9 @@ Completed todos remain in their original position. In the unfinished view, compl
 
 ## Tale trees
 
-Three intertwined SwiftUI strands frame each side of the tale, with a few small branch stubs. The wider illustrated margins extend from the top to the bottom of the window, with the entries, composer, and keyboard guidance between them. A horizontal band of light on both trees follows the list's scroll position: oldest entries at the top, newest at the bottom. Click anywhere along either tree to jump proportionally through the current list. The trees follow the All / Unfinished filter, and the ordinary scroll indicators are hidden. Trackpad, mouse-wheel, and keyboard navigation still work.
+Choose **View → Appearance → System, Light, or Dark** to change this app's appearance independently of macOS. The choice is remembered between launches; System follows your Mac's current appearance. Light mode uses soft parchment surfaces, warm ink, and muted moss-green accents.
+
+Three intertwined SwiftUI ink strands frame each side of the tale, with irregular bends, varied tapered branch stubs, and occasional forked tips. The two margins have distinct, fixed drawings that stay stable as content changes; their quiet green ink suggests the margins of an illustrated book. The wider illustrated margins extend from the top to the bottom of the window, with the entries, composer, and keyboard guidance between them. A horizontal band of light on both trees follows the list's scroll position: oldest entries at the top, newest at the bottom. Click anywhere along either tree to jump proportionally through the current list. The trees follow the All / Unfinished filter, and the ordinary scroll indicators are hidden. Trackpad, mouse-wheel, and keyboard navigation still work.
 
 Saving a note or todo pulses one independently chosen random strand on each side, once and at the same time, fading out over 1.6 seconds. The trees narrow with the window, support accessibility increment/decrement actions, and omit the pulse's slight expansion when Reduce Motion is enabled. Empty tales have no position glow; tales that fit entirely in view do not scroll when clicked.
 
