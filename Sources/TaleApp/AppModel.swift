@@ -15,6 +15,7 @@ final class AppModel {
     var databaseURL: URL?
     var recoveryMessage: String?
     var errorMessage: String?
+    var lastSubmission: UUID?
     private var database: Database?
     private var scopedURL: URL?
     private let bookmarkKey = "databaseBookmark"
@@ -65,6 +66,7 @@ final class AppModel {
             draft = ""
             selectedID = entry.id
             isInput = false
+            lastSubmission = UUID()
         } catch { errorMessage = error.localizedDescription }
     }
 

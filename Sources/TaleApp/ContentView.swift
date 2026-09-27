@@ -1,34 +1,58 @@
 import SwiftUI
+
+private typealias ViewState<Value> = SwiftUI.State<Value>
 import TaleCore
 
 private let accent = Color(red: 0.24, green: 0.49, blue: 0.39)
 
 struct ContentView: View {
     @Bindable var model: AppModel
+    @ViewState private var scrollPosition = TaleScrollPosition()
+    @ViewState private var treePulse: TreePulse?
 
     var body: some View {
         VStack(spacing: 0) {
             if model.databaseURL == nil {
                 welcome
             } else {
-                stream
-                composer
-                    .opacity(model.isInput ? 1 : 0)
-                    .disabled(!model.isInput)
-                    .allowsHitTesting(model.isInput)
-                    .accessibilityHidden(!model.isInput)
-                footer
+                GeometryReader { geometry in
+                    let treeWidth = min(112, max(60, geometry.size.width * 0.14))
+                    HStack(spacing: 0) {
+                        tree(side: 0, width: treeWidth)
+                        VStack(spacing: 0) {
+                            stream
+                            composer
+                                .opacity(model.isInput ? 1 : 0)
+                                .disabled(!model.isInput)
+                                .allowsHitTesting(model.isInput)
+                                .accessibilityHidden(!model.isInput)
+                            footer
+                        }
+                        tree(side: 1, width: treeWidth)
+                    }
+                }
             }
         }
         .background(Color(nsColor: .windowBackgroundColor))
         .tint(accent)
         .background(NavigationKeyboard(model: model).frame(width: 0, height: 0))
+        .onChange(of: model.lastSubmission) { _, _ in
+            treePulse = TreePulse()
+        }
         .alert("A Tale of Todos", isPresented: Binding(
             get: { model.errorMessage != nil },
             set: { if !$0 { model.errorMessage = nil } }
         )) {
             Button("OK") { model.errorMessage = nil }
         } message: { Text(model.errorMessage ?? "") }
+    }
+
+    private func tree(side: Int, width: CGFloat) -> some View {
+        TaleTree(side: side, progress: scrollPosition.progress,
+                 canScroll: scrollPosition.canScroll, hasEntries: !model.visibleEntries.isEmpty,
+                 pulse: treePulse, navigate: scrollPosition.scroll)
+            .frame(width: width)
+            .ignoresSafeArea(.container, edges: .vertical)
     }
 
     private var welcome: some View {
@@ -87,8 +111,10 @@ struct ContentView: View {
                     .frame(maxWidth: .infinity)
                     .padding(.horizontal, 22)
                     .padding(.vertical, 25)
+                    .background(TaleScrollObserver(position: scrollPosition))
                 }
             }
+            .scrollIndicators(.hidden)
             .onAppear { proxy.scrollTo("bottom", anchor: .bottom) }
             .onChange(of: model.selectedID) { _, id in
                 if let id { proxy.scrollTo(id) }
@@ -168,9 +194,9 @@ struct ContentView: View {
             .accessibilityLabel("Filter: \(model.unfinishedOnly ? "Unfinished" : "All")")
         }
         .font(.system(size: 10, design: .monospaced))
-        .lineLimit(1)
+        .fixedSize(horizontal: false, vertical: true)
         .foregroundStyle(.secondary)
-        .padding(.horizontal, 30).padding(.bottom, 16)
+        .padding(.horizontal, 22).padding(.bottom, 16)
     }
 
 }
