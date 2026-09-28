@@ -333,17 +333,35 @@ private struct EntryRow: View {
                     .foregroundStyle(entry.isCompleted ? palette.secondaryInk : palette.ink)
                     .fixedSize(horizontal: false, vertical: true)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                Text("\(EntryTimestamp.label(for: entry.createdAt, relativeTo: now)) · #\(String(entry.id))")
-                    .help(entry.createdAt.formatted(date: .complete, time: .shortened))
-                    .font(.system(size: 10))
-                    .foregroundStyle(palette.mutedInk)
+                HStack(alignment: .firstTextBaseline, spacing: 5) {
+                    Text("No. \(String(entry.id))")
+                        .font(TaleTypography.heading(size: 13))
+                    Text("·")
+                        .accessibilityHidden(true)
+                    Text(EntryTimestamp.label(for: entry.createdAt, relativeTo: now))
+                }
+                .help(entry.createdAt.formatted(date: .complete, time: .shortened))
+                .font(.system(size: 10))
+                .foregroundStyle(palette.mutedInk)
+                .accessibilityElement(children: .combine)
             }
             Spacer(minLength: 0)
         }
         .padding(.horizontal, 16).padding(.vertical, 14)
-        .background(selected ? palette.selection : Color.clear, in: RoundedRectangle(cornerRadius: 8))
         .overlay(alignment: .leading) {
-            if selected { RoundedRectangle(cornerRadius: 2).fill(palette.accent).frame(width: 3).padding(.vertical, 13) }
+            if selected {
+                VStack(spacing: 0) {
+                    Image(systemName: "diamond.fill")
+                        .font(.system(size: 6))
+                        .frame(width: 6, height: 6)
+                    Rectangle().frame(width: 1)
+                }
+                .foregroundStyle(palette.accent)
+                .padding(.vertical, 14)
+                .offset(x: -2.5)
+                .allowsHitTesting(false)
+                .accessibilityHidden(true)
+            }
         }
         .contentShape(Rectangle())
         .onTapGesture(perform: select)
