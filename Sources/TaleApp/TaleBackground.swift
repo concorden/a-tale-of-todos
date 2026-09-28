@@ -4,8 +4,9 @@ import SwiftUI
 struct TaleBackground: View {
     @Environment(\.colorScheme) private var colorScheme
 
-    // Kept deliberately faint: the existing parchment color supplies the warmth.
-    private let textureOpacity = 0.14
+    // Soften fine fibers that can appear to shimmer behind text.
+    private let textureSoftness: CGFloat = 1
+    private let textureOpacity = 0.08
 
     // Load the loose SwiftPM resource through AppKit, which also honors @2x sizing.
     private static let paperGrain = Bundle.module.image(forResource: "PaperGrain")
@@ -16,6 +17,8 @@ struct TaleBackground: View {
                 if colorScheme == .light, let paperGrain = Self.paperGrain {
                     Image(nsImage: paperGrain)
                         .resizable(resizingMode: .tile)
+                        .interpolation(.high)
+                        .blur(radius: textureSoftness, opaque: true)
                         .blendMode(.multiply)
                         .opacity(textureOpacity)
                 }
