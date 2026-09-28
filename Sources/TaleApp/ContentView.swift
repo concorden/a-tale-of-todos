@@ -34,7 +34,7 @@ struct ContentView: View {
                 }
             }
         }
-        .background(palette.background)
+        .background { TaleBackground() }
         .foregroundStyle(palette.ink)
         .tint(palette.accent)
         .background(NavigationKeyboard(model: model).frame(width: 0, height: 0))
