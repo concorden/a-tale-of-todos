@@ -2,7 +2,7 @@
 
 Asset: `Sources/TaleApp/Resources/Textures/PaperGrain@2x.png`
 
-Created with the built-in imagegen tool. The original 1254 × 1254 PNG is bundled at 2× scale, producing a 627-point tile without stretching the fibers as the window resizes. SwiftUI multiplies it over the existing parchment color at low opacity. `TaleBackground.textureOpacity` controls the strength.
+Created with the built-in imagegen tool. The original 1254 × 1254 PNG is bundled at 2× scale, producing a 627-point tile without stretching the fibers as the window resizes. SwiftUI multiplies it over the background color in both light and dark mode, using the same opacity and smoothing. `TaleBackground.textureOpacity` controls the strength.
 
 The current trial uses 14% opacity with a 2.5-point blur and high-quality image interpolation. It restores the paper's presence while smoothing away more of the fine fibers, following an 8% opacity / 1-point blur trial that felt too faint. `textureSoftness` controls the blur; the texture remains stationary.
 

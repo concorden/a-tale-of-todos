@@ -14,7 +14,7 @@ struct TaleBackground: View {
     var body: some View {
         TalePalette(colorScheme: colorScheme).background
             .overlay {
-                if colorScheme == .light, let paperGrain = Self.paperGrain {
+                if let paperGrain = Self.paperGrain {
                     Image(nsImage: paperGrain)
                         .resizable(resizingMode: .tile)
                         .interpolation(.high)
