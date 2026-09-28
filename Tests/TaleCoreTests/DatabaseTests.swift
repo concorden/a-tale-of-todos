@@ -97,21 +97,23 @@ final class DatabaseTests {
 }
 
 struct NavigationTests {
-    private let entries = (1...3).map {
+    private let entries = (1...3).reversed().map {
         Entry(id: Int64($0), kind: .todo, text: "Todo \($0)", createdAt: .distantPast, isCompleted: false)
     }
 
     @Test func testNavigationStopsAtBoundariesAndSelectsNewestInitially() {
-        #expect(Navigation.movedID(in: entries, selection: 1, offset: -1) == 1)
-        #expect(Navigation.movedID(in: entries, selection: 3, offset: 1) == 3)
-        #expect(Navigation.movedID(in: entries, selection: 2, offset: -1) == 1)
+        #expect(Navigation.movedID(in: entries, selection: 3, offset: -1) == 3)
+        #expect(Navigation.movedID(in: entries, selection: 1, offset: 1) == 1)
+        #expect(Navigation.movedID(in: entries, selection: 2, offset: -1) == 3)
+        #expect(Navigation.movedID(in: entries, selection: 3, offset: 1) == 2)
         #expect(Navigation.movedID(in: entries, selection: nil, offset: -1) == 3)
         #expect(Navigation.movedID(in: [], selection: nil, offset: 1) == nil)
     }
 
     @Test func testFilteredCompletionSelectsNextThenPreviousThenNothing() {
-        #expect(Navigation.replacementID(oldEntries: entries, newEntries: [entries[0], entries[2]], selection: 2) == 3)
-        #expect(Navigation.replacementID(oldEntries: entries, newEntries: Array(entries.prefix(2)), selection: 3) == 2)
-        #expect(Navigation.replacementID(oldEntries: [entries[0]], newEntries: [], selection: 1) == nil)
+        #expect(Navigation.replacementID(oldEntries: entries, newEntries: [entries[0], entries[2]], selection: 2) == 1)
+        #expect(Navigation.replacementID(oldEntries: entries, newEntries: Array(entries.prefix(2)), selection: 1) == 2)
+        #expect(Navigation.replacementID(oldEntries: entries, newEntries: entries, selection: nil) == 3)
+        #expect(Navigation.replacementID(oldEntries: [entries[0]], newEntries: [], selection: 3) == nil)
     }
 }

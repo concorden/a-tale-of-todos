@@ -7,7 +7,7 @@ let package = Package(
     products: [.executable(name: "Tale", targets: ["TaleApp"])],
     targets: [
         .target(name: "TaleCore", linkerSettings: [.linkedLibrary("sqlite3")]),
-        .executableTarget(name: "TaleApp", dependencies: ["TaleCore"]),
+        .executableTarget(name: "TaleApp", dependencies: ["TaleCore"], resources: [.process("Resources")]),
         .testTarget(name: "TaleCoreTests", dependencies: ["TaleCore"])
     ]
 )

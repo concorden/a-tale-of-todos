@@ -45,7 +45,7 @@ public enum Navigation {
     public static func movedID(in entries: [Entry], selection: Int64?, offset: Int) -> Int64? {
         guard !entries.isEmpty else { return nil }
         guard let index = entries.firstIndex(where: { $0.id == selection }) else {
-            return entries.last?.id
+            return entries.first?.id
         }
         return entries[min(max(index + offset, 0), entries.count - 1)].id
     }
@@ -53,7 +53,7 @@ public enum Navigation {
     public static func replacementID(oldEntries: [Entry], newEntries: [Entry], selection: Int64?) -> Int64? {
         if newEntries.contains(where: { $0.id == selection }) { return selection }
         guard !newEntries.isEmpty else { return nil }
-        let oldIndex = oldEntries.firstIndex(where: { $0.id == selection }) ?? newEntries.count - 1
+        let oldIndex = oldEntries.firstIndex(where: { $0.id == selection }) ?? 0
         return newEntries[min(oldIndex, newEntries.count - 1)].id
     }
 }

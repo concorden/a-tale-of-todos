@@ -22,7 +22,8 @@ final class AppModel {
     private let pathKey = "databaseDisplayPath"
 
     var visibleEntries: [Entry] {
-        unfinishedOnly ? entries.filter { $0.kind == .todo && !$0.isCompleted } : entries
+        let newestFirst = entries.reversed()
+        return unfinishedOnly ? newestFirst.filter { $0.kind == .todo && !$0.isCompleted } : Array(newestFirst)
     }
     var openTodoCount: Int { entries.filter { $0.kind == .todo && !$0.isCompleted }.count }
     var draft: String {
@@ -89,7 +90,7 @@ final class AppModel {
 
     func toggleFilter() {
         unfinishedOnly.toggle()
-        if !visibleEntries.contains(where: { $0.id == selectedID }) { selectedID = visibleEntries.last?.id }
+        if !visibleEntries.contains(where: { $0.id == selectedID }) { selectedID = visibleEntries.first?.id }
     }
 
     func createDatabase() {

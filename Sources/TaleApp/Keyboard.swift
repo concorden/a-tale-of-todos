@@ -70,7 +70,8 @@ struct ComposerEditor: NSViewRepresentable {
     func makeNSView(context: Context) -> NSScrollView {
         let scroll = NSScrollView()
         scroll.drawsBackground = false
-        scroll.hasVerticalScroller = true
+        scroll.hasVerticalScroller = false
+        scroll.hasHorizontalScroller = false
         let editor = PlainTextView()
         editor.isRichText = false
         editor.importsGraphics = false

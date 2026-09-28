@@ -21,12 +21,15 @@ struct ContentView: View {
                     HStack(spacing: 0) {
                         tree(side: 0, width: treeWidth)
                         VStack(spacing: 0) {
-                            stream
+                            Text("Personal")
+                                .font(TaleTypography.heading(size: 28))
+                                .accessibilityAddTraits(.isHeader)
+                                .frame(maxWidth: 690, alignment: .leading)
+                                .padding(.horizontal, 28)
+                                .padding(.top, 30)
+                                .padding(.bottom, 32)
                             composer
-                                .opacity(model.isInput ? 1 : 0)
-                                .disabled(!model.isInput)
-                                .allowsHitTesting(model.isInput)
-                                .accessibilityHidden(!model.isInput)
+                            stream
                             footer
                         }
                         tree(side: 1, width: treeWidth)
@@ -65,7 +68,7 @@ struct ContentView: View {
                 .foregroundStyle(palette.accent)
                 .padding(.bottom, 22)
             Text(model.recoveryMessage == nil ? "Make room for a thought." : "Let’s find your database.")
-                .font(.system(size: 27, weight: .medium, design: .serif))
+                .font(TaleTypography.heading(size: 30))
                 .padding(.bottom, 12)
             Text(model.recoveryMessage ?? "A note to remember. A thing to do.\nOne quiet place for both, saved on your Mac.")
                 .font(.system(size: 13))
@@ -97,6 +100,7 @@ struct ContentView: View {
             ScrollView {
                 TimelineView(.periodic(from: .now, by: 30)) { timeline in
                     LazyVStack(alignment: .leading, spacing: 5) {
+                        Color.clear.frame(height: 1).id("top")
                         if model.visibleEntries.isEmpty {
                             emptyStream
                         } else {
@@ -107,7 +111,6 @@ struct ContentView: View {
                                     .id(entry.id)
                             }
                         }
-                        Color.clear.frame(height: 1).id("bottom")
                     }
                     .frame(maxWidth: 690)
                     .frame(maxWidth: .infinity)
@@ -117,11 +120,12 @@ struct ContentView: View {
                 }
             }
             .scrollIndicators(.hidden)
-            .onAppear { proxy.scrollTo("bottom", anchor: .bottom) }
+            .onAppear { proxy.scrollTo("top", anchor: .top) }
             .onChange(of: model.selectedID) { _, id in
                 if let id { proxy.scrollTo(id) }
             }
-            .onChange(of: model.databaseURL) { _, _ in proxy.scrollTo("bottom", anchor: .bottom) }
+            .onChange(of: model.databaseURL) { _, _ in proxy.scrollTo("top", anchor: .top) }
+            .onChange(of: model.lastSubmission) { _, _ in proxy.scrollTo("top", anchor: .top) }
             .onChange(of: model.unfinishedOnly) { _, _ in
                 if let id = model.selectedID { proxy.scrollTo(id) }
             }
@@ -131,7 +135,7 @@ struct ContentView: View {
     private var emptyStream: some View {
         VStack(alignment: .leading, spacing: 13) {
             Text(model.unfinishedOnly ? "Nothing left to do." : "Every tale starts somewhere.")
-                .font(.system(size: 24, weight: .medium, design: .serif))
+                .font(TaleTypography.heading(size: 28))
                 .foregroundStyle(palette.ink.opacity(0.8))
             Text(model.unfinishedOnly ? "Enjoy the space. Press F to return to your full story." : "Press N to capture a thought, or T to add your first todo.")
                 .font(.system(size: 13)).foregroundStyle(palette.secondaryInk)
@@ -166,6 +170,30 @@ struct ContentView: View {
                         .font(.system(size: 11, design: .monospaced))
                         .foregroundStyle(model.draft.count > EntryText.limit ? Color.red : palette.secondaryInk)
                         .accessibilityLabel("\(model.draft.count) of \(EntryText.limit) characters")
+                }
+            }
+        }
+        .opacity(model.isInput ? 1 : 0)
+        .disabled(!model.isInput)
+        .allowsHitTesting(model.isInput)
+        .accessibilityHidden(!model.isInput)
+        .overlay(alignment: .leading) {
+            if !model.isInput {
+                VStack(alignment: .leading, spacing: 14) {
+                    Text("A note to remember. A thing to do.")
+                        .font(.system(size: 15))
+                        .foregroundStyle(palette.mutedInk)
+                    HStack(spacing: 20) {
+                        Button(action: { model.begin(.note) }) {
+                            Text(model.noteDraft.isEmpty ? "N  New note" : "N  Resume note")
+                        }
+                        Button(action: { model.begin(.todo) }) {
+                            Text(model.todoDraft.isEmpty ? "T  New todo" : "T  Resume todo")
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    .font(.system(size: 11, design: .monospaced))
+                    .foregroundStyle(palette.secondaryInk)
                 }
             }
         }
