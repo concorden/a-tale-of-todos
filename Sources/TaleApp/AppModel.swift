@@ -5,6 +5,30 @@ import UniformTypeIdentifiers
 
 @MainActor @Observable
 final class AppModel {
+    var tales: [Tale] = []
+    var activeTaleID: Int64?
+    var scrollPosition = TaleScrollPosition()
+    var isCreatingTale = false
+    var newTaleName = ""
+    var newTaleError: String?
+    private var sessions: [Int64: TaleSession] = [:]
+
+    @MainActor private struct TaleSession {
+        var selectedID: Int64?
+        var kind: EntryKind = .todo
+        var unfinishedOnly = false
+        var noteDraft = ""
+        var todoDraft = ""
+        var scrollPosition = TaleScrollPosition()
+    }
+
+    var activeTale: Tale? { tales.first { $0.id == activeTaleID } }
+    var taleNameValidation: String? {
+        guard let name = try? Tale.preparedName(newTaleName) else { return "Give your tale a name." }
+        return tales.contains { Tale.nameKey($0.name) == Tale.nameKey(name) }
+            ? "A tale with this name already exists." : nil
+    }
+
     var entries: [Entry] = []
     var selectedID: Int64?
     var kind: EntryKind = .todo
@@ -40,7 +64,7 @@ final class AppModel {
     init() { restoreDatabase() }
 
     func begin(_ kind: EntryKind) {
-        guard database != nil else { return }
+        guard activeTaleID != nil, !isCreatingTale else { return }
         self.kind = kind
         if kind == .note && unfinishedOnly { toggleFilter() }
         isInput = true
@@ -58,10 +82,10 @@ final class AppModel {
     }
 
     func submit() {
-        guard let database, canSubmit else { return }
+        guard let database, let activeTaleID, canSubmit, !isCreatingTale else { return }
         do {
             let entry = try SQLiteJournalPresenter.access(for: database.url) {
-                try database.add(kind: kind, text: draft)
+                try database.add(taleID: activeTaleID, kind: kind, text: draft)
             }
             entries.append(entry)
             draft = ""
@@ -77,10 +101,10 @@ final class AppModel {
     }
 
     func toggle(_ id: Int64) {
-        guard let database, let index = entries.firstIndex(where: { $0.id == id }), entries[index].kind == .todo else { return }
+        guard let database, let activeTaleID, let index = entries.firstIndex(where: { $0.id == id }), entries[index].kind == .todo else { return }
         let oldVisible = visibleEntries
         do {
-            try SQLiteJournalPresenter.access(for: database.url) { try database.toggle(id: id) }
+            try SQLiteJournalPresenter.access(for: database.url) { try database.toggle(id: id, taleID: activeTaleID) }
             let entry = entries[index]
             entries[index] = Entry(id: entry.id, kind: entry.kind, text: entry.text,
                                    createdAt: entry.createdAt, isCompleted: !entry.isCompleted)
@@ -91,6 +115,63 @@ final class AppModel {
     func toggleFilter() {
         unfinishedOnly.toggle()
         if !visibleEntries.contains(where: { $0.id == selectedID }) { selectedID = visibleEntries.first?.id }
+    }
+
+    func beginNewTale() {
+        guard database != nil, !isCreatingTale else { return }
+        newTaleName = ""
+        newTaleError = nil
+        isCreatingTale = true
+    }
+
+    func createTale() {
+        guard let database, isCreatingTale, taleNameValidation == nil else { return }
+        do {
+            let tale = try SQLiteJournalPresenter.access(for: database.url) {
+                try database.createTale(name: newTaleName)
+            }
+            saveSession()
+            tales.append(tale)
+            activate(tale.id, entries: [])
+            isCreatingTale = false
+        } catch { newTaleError = error.localizedDescription }
+    }
+
+    func moveTale(_ offset: Int) {
+        guard !isInput, !isCreatingTale,
+              let id = Navigation.movedTaleID(in: tales, selection: activeTaleID, offset: offset) else { return }
+        switchTale(id)
+    }
+
+    private func switchTale(_ id: Int64) {
+        guard let database, id != activeTaleID, tales.contains(where: { $0.id == id }), !isCreatingTale else { return }
+        do {
+            let loaded = try database.entries(taleID: id)
+            try SQLiteJournalPresenter.access(for: database.url) { try database.setActiveTale(id: id) }
+            saveSession()
+            activate(id, entries: loaded)
+        } catch { errorMessage = error.localizedDescription }
+    }
+
+    private func saveSession() {
+        guard let activeTaleID else { return }
+        scrollPosition.saveOffset()
+        sessions[activeTaleID] = TaleSession(selectedID: selectedID, kind: kind, unfinishedOnly: unfinishedOnly,
+                                             noteDraft: noteDraft, todoDraft: todoDraft, scrollPosition: scrollPosition)
+    }
+
+    private func activate(_ id: Int64?, entries loaded: [Entry]) {
+        let session = id.flatMap { sessions[$0] } ?? TaleSession(selectedID: loaded.last?.id)
+        activeTaleID = id
+        entries = loaded
+        selectedID = session.selectedID
+        kind = session.kind
+        unfinishedOnly = session.unfinishedOnly
+        noteDraft = session.noteDraft
+        todoDraft = session.todoDraft
+        scrollPosition = session.scrollPosition
+        isInput = false
+        lastSubmission = nil
     }
 
     func createDatabase() {
@@ -131,18 +212,17 @@ final class AppModel {
         do {
             if create { try createDatabaseFile(at: url) }
             let candidate = try SQLiteJournalPresenter.access(for: url) { try Database(url: url, create: false) }
-            let loaded = try candidate.entries()
+            let loadedTales = try candidate.tales()
+            let activeID = try candidate.activeTaleID()
+            let loaded = try activeID.map { try candidate.entries(taleID: $0) } ?? []
             let bookmark = try url.bookmarkData(options: .withSecurityScope, includingResourceValuesForKeys: nil, relativeTo: nil)
             database = candidate
             scopedURL?.stopAccessingSecurityScopedResource()
             scopedURL = accessed ? url : nil
             databaseURL = url
-            entries = loaded
-            selectedID = loaded.last?.id
-            unfinishedOnly = false
-            isInput = false
-            noteDraft = ""
-            todoDraft = ""
+            sessions = [:]
+            tales = loadedTales
+            activate(activeID, entries: loaded)
             recoveryMessage = nil
             UserDefaults.standard.set(bookmark, forKey: bookmarkKey)
             UserDefaults.standard.set(url.path, forKey: pathKey)

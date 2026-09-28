@@ -13,6 +13,15 @@ open "build/A Tale of Todos.app"
 
 The script builds and ad-hoc signs a sandboxed `.app`. This build is for local use; distribution to other Macs would require Developer ID signing and notarization. The package can also be opened in Xcode. Use the packaged app to test sandboxing and database bookmarks.
 
+To build and install into your personal Applications folder, replacing an existing copy:
+
+```sh
+bash scripts/install-app.sh
+open "$HOME/Applications/A Tale of Todos.app"
+```
+
+The installer verifies the new app before replacing the old copy. It leaves your database and preferences intact. If the app is already running, quit and reopen it to use the new build. Both build scripts accept `debug` as an optional argument; the default is `release`.
+
 ```sh
 bash scripts/swift.sh test
 ```
@@ -29,11 +38,21 @@ The app starts in **navigation** mode, with the newest entry selected at the top
 | F | Toggle unfinished todos |
 | Enter (input mode) | Save an entry and return to navigation |
 | Escape (input mode) | Keep the draft and return to navigation |
+| ← / → | Switch tales in creation order, wrapping at either end |
+| ⌘N | Create a named tale |
 | ⌘O | Open / change database |
 
-Notes and todos have independent drafts kept in memory. Quitting or switching databases clears both. Entries support 560 Swift `Character`s (extended grapheme clusters, so an emoji counts as one). Text wraps visually; pasted line breaks become spaces. Overlength drafts remain available for shortening and cannot be submitted. Blank entries do nothing.
+Each tale has independent note and todo drafts kept in memory. Quitting or switching databases clears both. Entries support 560 Swift `Character`s (extended grapheme clusters, so an emoji counts as one). Text wraps visually; pasted line breaks become spaces. Overlength drafts remain available for shortening and cannot be submitted. Blank entries do nothing.
 
 Completed todos remain in their original position. In the unfinished view, completion selects the next remaining entry, or the previous one at the end. Starting a note returns to the full stream. Entries cannot yet be edited, deleted, or converted, and search is deferred.
+
+## Tales
+
+A database holds multiple named tales (projects), each with its own notes and todos. **⌘N** opens New Tale: enter a name and press Enter to create and switch to it, or Escape to cancel. Names are required, trimmed, and unique within the database (ignoring case). Creating a tale while writing keeps the previous tale's draft. In a new database, press **⌘N** to name the first tale; existing databases migrate their entries into **Personal** without changing entry IDs, timestamps, or completion.
+
+Use **← / →** in navigation mode to switch tales in creation order, wrapping at the ends. While writing, the arrows move the text cursor; Escape returns to navigation. The title is plain text. Creation starts only with **⌘N**, and switching uses only the arrows; there are no tale menus or previous/next buttons. Renaming, archiving, deleting tales, and moving entries between tales are deferred.
+
+During a session, each tale remembers its drafts, All / Unfinished filter, selected entry, and scroll position. Switching returns to navigation mode. The database remembers the last active tale between launches; drafts and viewing positions last until quitting or changing databases.
 
 ## Tale trees
 
@@ -57,7 +76,7 @@ Timestamps refresh every 30 seconds in local time: `just now`, minutes or hours 
 
 Create or open a database using the first-launch screen. The app remembers the selected file with a security-scoped bookmark. It will never silently create a replacement for a missing database. File → Change Database switches files. Opening an unrelated SQLite file is rejected.
 
-Entries are committed immediately using SQLite transactions. The database uses an application ID (`ATOD`) and schema version 1. A temporary SQLite rollback-journal file can exist next to the database while saving. To back up or move the database, quit the app first and copy the `.sqlite` file. Prefer a local folder rather than a cloud-synced location.
+Entries are committed immediately using SQLite transactions. The database uses an application ID (`ATOD`) and schema version 2 (version 1 databases migrate atomically on opening). A temporary SQLite rollback-journal file can exist next to the database while saving. To back up or move the database, quit the app first and copy the `.sqlite` file. Prefer a local folder rather than a cloud-synced location.
 
 The app sandbox grants access only to user-selected files and their stored bookmarks. It has no inbound or outbound network entitlements. The app contains no networking code or third-party libraries.
 

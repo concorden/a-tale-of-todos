@@ -28,9 +28,17 @@ struct NavigationKeyboard: NSViewRepresentable {
                           event.window === window, window.isKeyWindow,
                           window.attachedSheet == nil, NSApp.modalWindow == nil,
                           self.model.errorMessage == nil,
-                          self.model.databaseURL != nil, !self.model.isInput,
-                          event.modifierFlags.intersection([.command, .control, .option]).isEmpty else { return false }
+                          self.model.databaseURL != nil, !self.model.isCreatingTale else { return false }
+                    let modifiers = event.modifierFlags.intersection([.command, .control, .option, .shift])
+                    if modifiers == .command, event.charactersIgnoringModifiers?.lowercased() == "n" {
+                        self.model.beginNewTale()
+                        return true
+                    }
+                    guard self.model.activeTaleID != nil, !self.model.isInput,
+                          modifiers.intersection([.command, .control, .option]).isEmpty else { return false }
                     switch event.keyCode {
+                    case 123: self.model.moveTale(-1)
+                    case 124: self.model.moveTale(1)
                     case 126: self.model.move(-1)
                     case 125: self.model.move(1)
                     default:
@@ -112,9 +120,9 @@ struct ComposerEditor: NSViewRepresentable {
         }
         editor.isEditable = isInput
         editor.isSelectable = isInput
-        if isInput && editor.window?.firstResponder !== editor {
+        if isInput && editor.window?.attachedSheet == nil && editor.window?.firstResponder !== editor {
             DispatchQueue.main.async { [weak editor] in
-                guard let editor, editor.isEditable else { return }
+                guard let editor, editor.isEditable, editor.window?.attachedSheet == nil else { return }
                 editor.window?.makeFirstResponder(editor)
             }
         } else if !isInput && editor.window?.firstResponder === editor {

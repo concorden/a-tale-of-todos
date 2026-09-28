@@ -6,7 +6,7 @@ import TaleCore
 struct ContentView: View {
     @Bindable var model: AppModel
     @Environment(\.colorScheme) private var colorScheme
-    @ViewState private var scrollPosition = TaleScrollPosition()
+    private var scrollPosition: TaleScrollPosition { model.scrollPosition }
     @ViewState private var treePulse: TreePulse?
 
     private var palette: TalePalette { TalePalette(colorScheme: colorScheme) }
@@ -21,16 +21,14 @@ struct ContentView: View {
                     HStack(spacing: 0) {
                         tree(side: 0, width: treeWidth)
                         VStack(spacing: 0) {
-                            Text("Personal")
-                                .font(TaleTypography.heading(size: 28))
-                                .accessibilityAddTraits(.isHeader)
-                                .frame(maxWidth: 690, alignment: .leading)
-                                .padding(.horizontal, 28)
-                                .padding(.top, 30)
-                                .padding(.bottom, 32)
-                            composer
-                            stream
-                            footer
+                            taleHeader
+                            if model.activeTaleID == nil {
+                                firstTale
+                            } else {
+                                composer.id(model.activeTaleID)
+                                stream.id(model.activeTaleID)
+                                footer
+                            }
                         }
                         tree(side: 1, width: treeWidth)
                     }
@@ -42,7 +40,10 @@ struct ContentView: View {
         .tint(palette.accent)
         .background(NavigationKeyboard(model: model).frame(width: 0, height: 0))
         .onChange(of: model.lastSubmission) { _, _ in
-            treePulse = TreePulse()
+            treePulse = model.lastSubmission == nil ? nil : TreePulse()
+        }
+        .sheet(isPresented: $model.isCreatingTale) {
+            NewTaleSheet(model: model)
         }
         .alert("A Tale of Todos", isPresented: Binding(
             get: { model.errorMessage != nil },
@@ -50,6 +51,31 @@ struct ContentView: View {
         )) {
             Button("OK") { model.errorMessage = nil }
         } message: { Text(model.errorMessage ?? "") }
+    }
+
+    private var taleHeader: some View {
+        Text(model.activeTale?.name ?? "Your tales")
+            .font(TaleTypography.heading(size: 28))
+            .lineLimit(1)
+            .truncationMode(.tail)
+            .accessibilityAddTraits(.isHeader)
+            .frame(maxWidth: 690, alignment: .leading)
+            .padding(.horizontal, 28)
+            .padding(.top, 30)
+            .padding(.bottom, 32)
+    }
+
+    private var firstTale: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Every tale starts somewhere.")
+                .font(TaleTypography.heading(size: 28))
+            Text("Press ⌘N to name your first tale, then fill it with notes and todos.")
+                .font(.system(size: 13))
+                .foregroundStyle(palette.secondaryInk)
+            Spacer()
+        }
+        .padding(28)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
 
     private func tree(side: Int, width: CGFloat) -> some View {
@@ -120,7 +146,6 @@ struct ContentView: View {
                 }
             }
             .scrollIndicators(.hidden)
-            .onAppear { proxy.scrollTo("top", anchor: .top) }
             .onChange(of: model.selectedID) { _, id in
                 if let id { proxy.scrollTo(id) }
             }
@@ -211,7 +236,7 @@ struct ContentView: View {
             if model.isInput {
                 Text("INPUT · Drafts stay until you quit")
             } else {
-                Text("n note · t todo · j/k move · x complete · f filter")
+                Text("n note · t todo · ↑↓ move · ←→ tales · x complete · f filter")
             }
             Spacer(minLength: 0)
             Button(action: model.toggleFilter) {
@@ -229,6 +254,36 @@ struct ContentView: View {
         .padding(.horizontal, 22).padding(.bottom, 16)
     }
 
+}
+
+private struct NewTaleSheet: View {
+    @Bindable var model: AppModel
+    @FocusState private var nameFocused: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            Text("New Tale").font(TaleTypography.heading(size: 28))
+            TextField("Tale name", text: $model.newTaleName)
+                .textFieldStyle(.roundedBorder)
+                .focused($nameFocused)
+                .onSubmit { model.createTale() }
+                .onChange(of: model.newTaleName) { _, _ in model.newTaleError = nil }
+            if let message = model.newTaleError ?? (model.newTaleName.isEmpty ? nil : model.taleNameValidation) {
+                Text(message).font(.callout).foregroundStyle(.red)
+            }
+            HStack {
+                Spacer()
+                Button("Cancel") { model.isCreatingTale = false }
+                    .keyboardShortcut(.cancelAction)
+                Button("Create Tale", action: model.createTale)
+                    .keyboardShortcut(.defaultAction)
+                    .disabled(model.taleNameValidation != nil)
+            }
+        }
+        .padding(28)
+        .frame(width: 360)
+        .onAppear { nameFocused = true }
+    }
 }
 
 private struct EntryRow: View {

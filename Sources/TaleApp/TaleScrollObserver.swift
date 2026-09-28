@@ -7,7 +7,20 @@ import SwiftUI
 final class TaleScrollPosition {
     private(set) var progress: CGFloat = 0
     private(set) var canScroll = false
+    @ObservationIgnored private var savedOffset: CGFloat = 0
     @ObservationIgnored weak var scrollView: NSScrollView?
+
+    func saveOffset() {
+        guard let scrollView, let document = scrollView.documentView else { return }
+        let viewport = scrollView.contentView.bounds
+        savedOffset = max(0, document.isFlipped ? viewport.minY - document.bounds.minY : document.bounds.maxY - viewport.maxY)
+    }
+
+    func restoreOffset() {
+        guard let scrollView, let document = scrollView.documentView else { return }
+        let distance = max(0, document.bounds.height - scrollView.contentView.bounds.height)
+        scroll(to: distance > 0 ? savedOffset / distance : 0)
+    }
 
     func refresh() {
         guard let scrollView, let document = scrollView.documentView else { return }
@@ -92,6 +105,7 @@ struct TaleScrollObserver: NSViewRepresentable {
                         NotificationCenter.default.addObserver(self, selector: #selector(self.scheduleRefresh),
                                                                name: NSView.frameDidChangeNotification, object: document)
                     }
+                    self.position.restoreOffset()
                 }
                 self.position.refresh()
             }

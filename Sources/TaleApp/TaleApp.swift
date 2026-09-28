@@ -43,21 +43,23 @@ struct TaleApp: App {
             }
             CommandGroup(replacing: .newItem) {
                 Button("Create Database…", action: model.createDatabase)
+                    .disabled(model.isCreatingTale)
                 Button(model.databaseURL == nil ? "Open Database…" : "Change Database…", action: model.openDatabase)
                     .keyboardShortcut("o", modifiers: .command)
+                    .disabled(model.isCreatingTale)
             }
             CommandMenu("Entry") {
-                Button("New Note") { model.begin(.note) }.disabled(model.databaseURL == nil)
-                Button("New Todo") { model.begin(.todo) }.disabled(model.databaseURL == nil)
+                Button("New Note") { model.begin(.note) }.disabled(model.activeTaleID == nil || model.isCreatingTale)
+                Button("New Todo") { model.begin(.todo) }.disabled(model.activeTaleID == nil || model.isCreatingTale)
                 Divider()
                 Button("Toggle Completion", action: model.toggleSelected)
-                    .disabled(model.isInput || !model.entries.contains { $0.id == model.selectedID && $0.kind == .todo })
+                    .disabled(model.isCreatingTale || model.isInput || !model.entries.contains { $0.id == model.selectedID && $0.kind == .todo })
                 Button(model.unfinishedOnly ? "Show All Entries" : "Show Unfinished Todos", action: model.toggleFilter)
-                    .disabled(model.databaseURL == nil || model.isInput)
+                    .disabled(model.activeTaleID == nil || model.isInput || model.isCreatingTale)
             }
             CommandGroup(replacing: .help) {
                 Button("Keyboard Shortcuts") {
-                    model.errorMessage = "In navigation mode:\nN — new note\nT — new todo\n↑ / ↓ or J / K — move selection\nX — toggle todo completion\nF — show unfinished todos / all entries\n\nIn input mode:\nEnter — add entry\nEscape — keep draft and return to navigation\n\nDrafts are kept until you quit or change databases."
+                    model.errorMessage = "In navigation mode:\nN — new note\nT — new todo\n↑ / ↓ or J / K — move selection\n← / → — switch tales (wraps around)\nX — toggle todo completion\nF — show unfinished todos / all entries\n\n⌘N — create a named tale\n\nIn input mode:\nEnter — add entry\nEscape — keep draft and return to navigation\n\nEach tale keeps its own drafts until you quit or change databases."
                 }
             }
         }
