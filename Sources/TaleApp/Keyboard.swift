@@ -68,10 +68,8 @@ struct NavigationKeyboard: NSViewRepresentable {
 struct ComposerEditor: NSViewRepresentable {
     @Binding var text: String
     @Environment(\.colorScheme) private var colorScheme
-    let isInput: Bool
     let submit: () -> Void
     let escape: () -> Void
-    let activate: () -> Void
 
     func makeCoordinator() -> Coordinator { Coordinator(parent: self) }
 
@@ -84,10 +82,13 @@ struct ComposerEditor: NSViewRepresentable {
         editor.isRichText = false
         editor.importsGraphics = false
         editor.drawsBackground = false
-        editor.font = NSFont.systemFont(ofSize: 15)
+        editor.font = NSFont.systemFont(ofSize: 14)
+        let paragraph = NSMutableParagraphStyle()
+        paragraph.lineSpacing = 4
+        editor.defaultParagraphStyle = paragraph
         editor.textColor = TalePalette(colorScheme: colorScheme).editorInk
         editor.insertionPointColor = editor.textColor
-        editor.textContainerInset = NSSize(width: 0, height: 3)
+        editor.textContainerInset = .zero
         editor.isVerticallyResizable = true
         editor.isHorizontallyResizable = false
         editor.autoresizingMask = [.width]
@@ -102,6 +103,7 @@ struct ComposerEditor: NSViewRepresentable {
         editor.delegate = context.coordinator
         editor.setAccessibilityLabel("Entry text")
         scroll.documentView = editor
+        editor.typingAttributes = [.font: NSFont.systemFont(ofSize: 14), .paragraphStyle: paragraph]
         return scroll
     }
 
@@ -110,7 +112,6 @@ struct ComposerEditor: NSViewRepresentable {
         guard let editor = scroll.documentView as? PlainTextView else { return }
         editor.textColor = TalePalette(colorScheme: colorScheme).editorInk
         editor.insertionPointColor = editor.textColor
-        editor.activate = activate
         editor.submit = submit
         editor.escape = escape
         if editor.string != text {
@@ -118,16 +119,23 @@ struct ComposerEditor: NSViewRepresentable {
             editor.setSelectedRange(NSRange(location: (text as NSString).length, length: 0))
             editor.undoManager?.removeAllActions()
         }
-        editor.isEditable = isInput
-        editor.isSelectable = isInput
-        if isInput && editor.window?.attachedSheet == nil && editor.window?.firstResponder !== editor {
+        if editor.window?.attachedSheet == nil && editor.window?.firstResponder !== editor {
             DispatchQueue.main.async { [weak editor] in
                 guard let editor, editor.isEditable, editor.window?.attachedSheet == nil else { return }
                 editor.window?.makeFirstResponder(editor)
             }
-        } else if !isInput && editor.window?.firstResponder === editor {
-            editor.window?.makeFirstResponder(nil)
         }
+    }
+
+    func sizeThatFits(_ proposal: ProposedViewSize, nsView scroll: NSScrollView, context: Context) -> CGSize? {
+        guard let width = proposal.width, width.isFinite, width > 0,
+              let editor = scroll.documentView as? NSTextView,
+              let container = editor.textContainer,
+              let layout = editor.layoutManager else { return nil }
+        container.containerSize = NSSize(width: width, height: .greatestFiniteMagnitude)
+        layout.ensureLayout(for: container)
+        let height = max(21, ceil(layout.usedRect(for: container).height))
+        return CGSize(width: width, height: height)
     }
 
     @MainActor final class Coordinator: NSObject, NSTextViewDelegate {
@@ -143,7 +151,6 @@ struct ComposerEditor: NSViewRepresentable {
 @MainActor final class PlainTextView: NSTextView {
     var submit: (() -> Void)?
     var escape: (() -> Void)?
-    var activate: (() -> Void)?
 
     override func insertText(_ insertString: Any, replacementRange: NSRange) {
         let string = (insertString as? NSAttributedString)?.string ?? (insertString as? String) ?? ""
@@ -159,9 +166,5 @@ struct ComposerEditor: NSViewRepresentable {
         } else if selector == #selector(cancelOperation(_:)) {
             escape?()
         } else { super.doCommand(by: selector) }
-    }
-    override func mouseDown(with event: NSEvent) {
-        if !isEditable { activate?() }
-        super.mouseDown(with: event)
     }
 }

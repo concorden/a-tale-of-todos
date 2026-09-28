@@ -25,7 +25,6 @@ struct ContentView: View {
                             if model.activeTaleID == nil {
                                 firstTale
                             } else {
-                                composer.id(model.activeTaleID)
                                 stream.id(model.activeTaleID)
                                 footer
                             }
@@ -55,14 +54,14 @@ struct ContentView: View {
 
     private var taleHeader: some View {
         Text(model.activeTale?.name ?? "Your tales")
-            .font(TaleTypography.heading(size: 28))
+            .font(TaleTypography.heading(size: 34))
             .lineLimit(1)
             .truncationMode(.tail)
             .accessibilityAddTraits(.isHeader)
             .frame(maxWidth: 690, alignment: .leading)
             .padding(.horizontal, 28)
             .padding(.top, 30)
-            .padding(.bottom, 32)
+            .padding(.bottom, 48)
     }
 
     private var firstTale: some View {
@@ -127,8 +126,12 @@ struct ContentView: View {
                 TimelineView(.periodic(from: .now, by: 30)) { timeline in
                     LazyVStack(alignment: .leading, spacing: 5) {
                         Color.clear.frame(height: 1).id("top")
+                        if model.isInput {
+                            composer
+                                .id("draft")
+                        }
                         if model.visibleEntries.isEmpty {
-                            emptyStream
+                            if !model.isInput { emptyStream }
                         } else {
                             ForEach(model.visibleEntries) { entry in
                                 EntryRow(entry: entry, now: timeline.date, selected: model.selectedID == entry.id && !model.isInput,
@@ -147,12 +150,15 @@ struct ContentView: View {
             }
             .scrollIndicators(.hidden)
             .onChange(of: model.selectedID) { _, id in
-                if let id { proxy.scrollTo(id) }
+                if let id, !model.isInput { proxy.scrollTo(id) }
+            }
+            .onChange(of: model.isInput) { _, isInput in
+                if isInput { proxy.scrollTo("top", anchor: .top) }
             }
             .onChange(of: model.databaseURL) { _, _ in proxy.scrollTo("top", anchor: .top) }
             .onChange(of: model.lastSubmission) { _, _ in proxy.scrollTo("top", anchor: .top) }
             .onChange(of: model.unfinishedOnly) { _, _ in
-                if let id = model.selectedID { proxy.scrollTo(id) }
+                if let id = model.selectedID, !model.isInput { proxy.scrollTo(id) }
             }
         }
     }
@@ -170,71 +176,45 @@ struct ContentView: View {
     }
 
     private var composer: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            ZStack(alignment: .topLeading) {
-                if model.draft.isEmpty {
-                    Text(model.kind == .note ? "What’s on your mind?" : "What needs doing?")
-                        .font(.system(size: 15))
-                        .foregroundStyle(palette.mutedInk)
-                        .padding(.top, 3)
-                        .allowsHitTesting(false)
-                }
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: model.kind == .todo ? "square" : "text.alignleft")
+                .font(.system(size: model.kind == .todo ? 16 : 14))
+                .foregroundStyle(model.kind == .todo ? palette.secondaryInk : palette.mutedInk)
+                .frame(width: 20, height: 21)
+                .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 7) {
                 ComposerEditor(text: Binding(get: { model.draft }, set: { model.draft = $0 }),
-                               isInput: model.isInput, submit: model.submit, escape: model.leaveInput,
-                               activate: { model.begin(model.kind) })
-                    .frame(height: 64)
-            }
-            HStack {
-                Text(model.draft.count > EntryText.limit ? "A little shorter. Keep it to \(EntryText.limit) characters." :
-                     "Enter to add · Esc to keep draft")
-                    .font(.system(size: 11))
-                    .foregroundStyle(model.draft.count > EntryText.limit ? Color.red : palette.secondaryInk)
-                Spacer()
-                if model.draft.count >= EntryText.limit - 50 {
-                    Text("\(model.draft.count)/\(EntryText.limit)")
-                        .font(.system(size: 11, design: .monospaced))
-                        .foregroundStyle(model.draft.count > EntryText.limit ? Color.red : palette.secondaryInk)
-                        .accessibilityLabel("\(model.draft.count) of \(EntryText.limit) characters")
-                }
-            }
-        }
-        .opacity(model.isInput ? 1 : 0)
-        .disabled(!model.isInput)
-        .allowsHitTesting(model.isInput)
-        .accessibilityHidden(!model.isInput)
-        .overlay(alignment: .leading) {
-            if !model.isInput {
-                VStack(alignment: .leading, spacing: 14) {
-                    Text("A note to remember. A thing to do.")
-                        .font(.system(size: 15))
-                        .foregroundStyle(palette.mutedInk)
-                    HStack(spacing: 20) {
-                        Button(action: { model.begin(.note) }) {
-                            Text(model.noteDraft.isEmpty ? "N  New note" : "N  Resume note")
-                        }
-                        Button(action: { model.begin(.todo) }) {
-                            Text(model.todoDraft.isEmpty ? "T  New todo" : "T  Resume todo")
-                        }
+                               submit: model.submit, escape: model.leaveInput)
+                    .frame(minHeight: 21)
+                HStack(alignment: .firstTextBaseline) {
+                    Text(model.draft.count > EntryText.limit
+                         ? "A little shorter. Keep it to \(EntryText.limit) characters."
+                         : "\(model.kind == .todo ? "New todo" : "New note") · Enter to add · Esc to keep draft")
+                    Spacer(minLength: 0)
+                    if model.draft.count >= EntryText.limit - 50 {
+                        Text("\(model.draft.count)/\(EntryText.limit)")
+                            .monospacedDigit()
+                            .accessibilityLabel("\(model.draft.count) of \(EntryText.limit) characters")
                     }
-                    .buttonStyle(.plain)
-                    .font(.system(size: 11, design: .monospaced))
-                    .foregroundStyle(palette.secondaryInk)
                 }
+                .font(.system(size: 10))
+                .foregroundStyle(model.draft.count > EntryText.limit ? Color.red : palette.mutedInk)
             }
+            Spacer(minLength: 0)
         }
-        .padding(17)
-        .background(palette.surface, in: RoundedRectangle(cornerRadius: 12))
-        .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(model.isInput ? palette.accent.opacity(0.7) : palette.ink.opacity(0.09), lineWidth: 1))
-        .frame(maxWidth: 690)
-        .padding(.horizontal, 28)
-        .padding(.top, 9)
-        .padding(.bottom, 14)
+        .padding(.horizontal, 16).padding(.vertical, 14)
+        .background(palette.accent.opacity(0.07), in: RoundedRectangle(cornerRadius: 8))
+        .overlay(alignment: .leading) {
+            RoundedRectangle(cornerRadius: 2).fill(palette.accent).frame(width: 3).padding(.vertical, 13)
+        }
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel(model.kind == .todo ? "New todo" : "New note")
     }
 
     private var footer: some View {
         HStack(spacing: 12) {
             if model.isInput {
-                Text("INPUT · Drafts stay until you quit")
+                Text("Drafts stay until you quit")
             } else {
                 Text("n note · t todo · ↑↓ move · ←→ tales · x complete · f filter")
             }

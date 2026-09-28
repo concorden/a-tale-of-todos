@@ -28,7 +28,7 @@ bash scripts/swift.sh test
 
 ## Keyboard
 
-The app starts in **navigation** mode, with the newest entry selected at the top. Entries run newest to oldest. The composer stays above the stream, with its space always reserved so the list does not resize between modes. In navigation mode, a quiet placeholder offers New note / New todo buttons (or Resume when a draft exists). N / T opens the editor in the same space; Escape or submission returns to the placeholder. A compact keyboard-hint footer and an All / Unfinished filter indicator sit below the stream.
+The app starts in **navigation** mode, with the newest entry selected at the top. Entries run newest to oldest. Press N / T to insert a focused note / todo draft at the top of the stream. The draft looks like an entry, with the same icon and text alignment, and grows as you write. There is no separate input box, placeholder text, or reserved composer space in navigation mode. Enter saves the draft in place; Escape hides it and keeps its text for the next N / T. The Entry menu also starts or resumes drafts. A compact keyboard-hint footer and an All / Unfinished filter indicator sit below the stream.
 
 | Key | Action |
 | --- | --- |
