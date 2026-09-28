@@ -28,7 +28,8 @@ struct NavigationKeyboard: NSViewRepresentable {
                           event.window === window, window.isKeyWindow,
                           window.attachedSheet == nil, NSApp.modalWindow == nil,
                           self.model.errorMessage == nil,
-                          self.model.databaseURL != nil, !self.model.isCreatingTale else { return false }
+                          self.model.databaseURL != nil, !self.model.isCreatingTale,
+                          !self.model.isSearching else { return false }
                     let modifiers = event.modifierFlags.intersection([.command, .control, .option, .shift])
                     if modifiers == .command, event.charactersIgnoringModifiers?.lowercased() == "n" {
                         self.model.beginNewTale()
@@ -42,7 +43,8 @@ struct NavigationKeyboard: NSViewRepresentable {
                     case 126: self.model.move(-1)
                     case 125: self.model.move(1)
                     default:
-                        switch event.charactersIgnoringModifiers?.lowercased() {
+                        switch event.characters?.lowercased() {
+                        case "/": self.model.beginSearch()
                         case "n": self.model.begin(.note)
                         case "t": self.model.begin(.todo)
                         case "j": self.model.move(1)

@@ -9,6 +9,8 @@ final class AppModel {
     var activeTaleID: Int64?
     var scrollPosition = TaleScrollPosition()
     var isCreatingTale = false
+    var isSearching = false
+    var lastSearchJump: UUID?
     var newTaleName = ""
     var newTaleError: String?
     private var sessions: [Int64: TaleSession] = [:]
@@ -64,13 +66,27 @@ final class AppModel {
     init() { restoreDatabase() }
 
     func begin(_ kind: EntryKind) {
-        guard activeTaleID != nil, !isCreatingTale else { return }
+        guard activeTaleID != nil, !isCreatingTale, !isSearching else { return }
         self.kind = kind
         if kind == .note && unfinishedOnly { toggleFilter() }
         isInput = true
     }
 
     func leaveInput() { isInput = false }
+
+    func beginSearch() {
+        guard activeTaleID != nil, !isInput, !isCreatingTale, errorMessage == nil else { return }
+        isSearching = true
+    }
+
+    func jumpToSearchResult(_ id: Int64) {
+        guard let entry = entries.first(where: { $0.id == id }) else { return }
+        if unfinishedOnly && (entry.kind != .todo || entry.isCompleted) { unfinishedOnly = false }
+        select(id)
+        isSearching = false
+        // Also scroll when the result was already selected but is outside the viewport.
+        lastSearchJump = UUID()
+    }
 
     func move(_ offset: Int) {
         selectedID = Navigation.movedID(in: visibleEntries, selection: selectedID, offset: offset)
@@ -118,7 +134,7 @@ final class AppModel {
     }
 
     func beginNewTale() {
-        guard database != nil, !isCreatingTale else { return }
+        guard database != nil, !isCreatingTale, !isSearching else { return }
         newTaleName = ""
         newTaleError = nil
         isCreatingTale = true

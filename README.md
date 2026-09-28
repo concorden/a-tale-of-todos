@@ -36,6 +36,9 @@ The app starts in **navigation** mode, with the newest entry selected at the top
 | ↑ / ↓ or K / J | Move toward newer / older entries without wrapping |
 | X | Toggle the selected todo |
 | F | Toggle unfinished todos |
+| / or ⌘F (navigation mode) | Find in the current tale |
+| ↑ / ↓ (find) | Select a result without wrapping |
+| Enter / Escape (find) | Jump to the result / cancel |
 | Enter (input mode) | Save an entry and return to navigation |
 | Escape (input mode) | Keep the draft and return to navigation |
 | ← / → | Switch tales in creation order, wrapping at either end |
@@ -44,7 +47,9 @@ The app starts in **navigation** mode, with the newest entry selected at the top
 
 Each tale has independent note and todo drafts kept in memory. Quitting or switching databases clears both. Entries support 560 Swift `Character`s (extended grapheme clusters, so an emoji counts as one). Text wraps visually; pasted line breaks become spaces. Overlength drafts remain available for shortening and cannot be submitted. Blank entries do nothing.
 
-Completed todos remain in their original position. In the unfinished view, completion selects the next remaining entry, or the previous one at the end. Starting a note returns to the full stream. Entries cannot yet be edited, deleted, or converted, and search is deferred.
+Completed todos remain in their original position. In the unfinished view, completion selects the next remaining entry, or the previous one at the end. Starting a note returns to the full stream. Entries cannot yet be edited, deleted, or converted.
+
+Find searches all notes and todos in the current tale, including completed entries and entries hidden by the Unfinished filter. It matches literal substrings, ignoring case and accents, with results updating as you type, newest first. Spaces and punctuation are literal. Matching text is highlighted; ↑ / ↓ selects a result while typing focus stays in the search field. Enter closes Find, selects and scrolls to the entry, and switches to All if necessary to reveal it. Escape leaves the tale’s selection, filter, and scroll position untouched. Each search starts blank. Search runs entirely in memory.
 
 ## Tales
 

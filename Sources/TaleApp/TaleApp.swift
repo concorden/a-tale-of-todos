@@ -43,24 +43,29 @@ struct TaleApp: App {
             }
             CommandGroup(replacing: .newItem) {
                 Button("Create Database…", action: model.createDatabase)
-                    .disabled(model.isCreatingTale)
+                    .disabled(model.isCreatingTale || model.isSearching)
                 Button(model.databaseURL == nil ? "Open Database…" : "Change Database…", action: model.openDatabase)
                     .keyboardShortcut("o", modifiers: .command)
-                    .disabled(model.isCreatingTale)
+                    .disabled(model.isCreatingTale || model.isSearching)
             }
             CommandMenu("Entry") {
-                Button("New Note") { model.begin(.note) }.disabled(model.activeTaleID == nil || model.isCreatingTale)
-                Button("New Todo") { model.begin(.todo) }.disabled(model.activeTaleID == nil || model.isCreatingTale)
+                Button("Find in Tale…", action: model.beginSearch)
+                    .keyboardShortcut("f", modifiers: .command)
+                    .disabled(model.activeTaleID == nil || model.isInput || model.isCreatingTale || model.isSearching)
+                Divider()
+                Button("New Note") { model.begin(.note) }.disabled(model.activeTaleID == nil || model.isCreatingTale || model.isSearching)
+                Button("New Todo") { model.begin(.todo) }.disabled(model.activeTaleID == nil || model.isCreatingTale || model.isSearching)
                 Divider()
                 Button("Toggle Completion", action: model.toggleSelected)
-                    .disabled(model.isCreatingTale || model.isInput || !model.entries.contains { $0.id == model.selectedID && $0.kind == .todo })
+                    .disabled(model.isSearching || model.isCreatingTale || model.isInput || !model.entries.contains { $0.id == model.selectedID && $0.kind == .todo })
                 Button(model.unfinishedOnly ? "Show All Entries" : "Show Unfinished Todos", action: model.toggleFilter)
-                    .disabled(model.activeTaleID == nil || model.isInput || model.isCreatingTale)
+                    .disabled(model.activeTaleID == nil || model.isInput || model.isCreatingTale || model.isSearching)
             }
             CommandGroup(replacing: .help) {
                 Button("Keyboard Shortcuts") {
-                    model.errorMessage = "In navigation mode:\nN — new note\nT — new todo\n↑ / ↓ or J / K — move selection\n← / → — switch tales (wraps around)\nX — toggle todo completion\nF — show unfinished todos / all entries\n\n⌘N — create a named tale\n\nIn input mode:\nEnter — add entry\nEscape — keep draft and return to navigation\n\nEach tale keeps its own drafts until you quit or change databases."
+                    model.errorMessage = "In navigation mode:\nN — new note\nT — new todo\n↑ / ↓ or J / K — move selection\n← / → — switch tales (wraps around)\nX — toggle todo completion\nF — show unfinished todos / all entries\n/ or ⌘F — find in this tale\n\n⌘N — create a named tale\n\nIn input mode:\nEnter — add entry\nEscape — keep draft and return to navigation\n\nIn find:\n↑ / ↓ — select result\nEnter — jump to entry\nEscape — cancel\n\nEach tale keeps its own drafts until you quit or change databases."
                 }
+                .disabled(model.isSearching)
             }
         }
     }
