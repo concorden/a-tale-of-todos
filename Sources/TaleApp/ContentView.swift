@@ -49,6 +49,10 @@ struct ContentView: View {
             FindSheet(model: model)
                 .presentationBackground { TaleBackground() }
         }
+        .sheet(isPresented: $model.isGoingTo) {
+            GoToSheet(model: model)
+                .presentationBackground { TaleBackground() }
+        }
         .alert("A Tale of Todos", isPresented: Binding(
             get: { model.errorMessage != nil },
             set: { if !$0 { model.errorMessage = nil } }
@@ -165,6 +169,9 @@ struct ContentView: View {
             .onChange(of: model.lastSearchJump) { _, _ in
                 if let id = model.selectedID { proxy.scrollTo(id, anchor: .center) }
             }
+            .onChange(of: model.lastGoToJump) { _, _ in
+                if let id = model.selectedID { proxy.scrollTo(id, anchor: .center) }
+            }
             .onChange(of: model.unfinishedOnly) { _, _ in
                 if let id = model.selectedID, !model.isInput { proxy.scrollTo(id) }
             }
@@ -224,7 +231,7 @@ struct ContentView: View {
             if model.isInput {
                 Text("Drafts stay until you quit")
             } else {
-                Text("n note · t todo · ↑↓ move · ←→ tales · x complete · f filter · / find")
+                Text("n note · t todo · ↑↓ move · ←→ tales · x complete · f filter · / find · g go to")
             }
             Spacer(minLength: 0)
             Button(action: model.toggleFilter) {

@@ -1,6 +1,17 @@
-# A Tale of Todos
+# A Tale of Todos (work in progress)
 
-A native, offline macOS scratchpad for notes and todos. SwiftUI and AppKit, backed by the SQLite library included in macOS. No dependencies, accounts, telemetry, or network permissions.
+A calm and *magical* place to think and plan. It's a work in progress and if you want to try it, you'll have to build it (see the **Build and run** section below).
+
+This app exists because I wanted to explore the following:
+
+1. How would it look to combine the keyboard first approach of TUIs with all the good stuff from a GUI.
+2. Can I build a UI with a bit more 'flavour'. Mostly inspired by games, where taking an action *feels* good or meaningful.
+
+It also works slightly differently from most note taking apps. It is built for long streams or dumps of notes and todos, rather than individually structured notes.
+
+## How it works
+
+It's a native macOS app written in Swift. It stores your data in a local SQLite db, never connects to the internet, and doesn't require creating an account.
 
 ## Build and run
 
@@ -26,65 +37,6 @@ The installer verifies the new app before replacing the old copy. It leaves your
 bash scripts/swift.sh test
 ```
 
-## Keyboard
+## AI disclaimer
+Don't look too much at the code - I haven't (yet).
 
-The app starts in **navigation** mode, with the newest entry selected at the top. Entries run newest to oldest. Press N / T to insert a focused note / todo draft at the top of the stream. The draft looks like an entry, with the same icon and text alignment, and grows as you write. There is no separate input box, placeholder text, or reserved composer space in navigation mode. Enter saves the draft in place; Escape hides it and keeps its text for the next N / T. The Entry menu also starts or resumes drafts. A compact keyboard-hint footer and an All / Unfinished filter indicator sit below the stream.
-
-| Key | Action |
-| --- | --- |
-| N / T | Start or resume a note / todo draft |
-| ↑ / ↓ or K / J | Move toward newer / older entries without wrapping |
-| X | Toggle the selected todo |
-| F | Toggle unfinished todos |
-| / or ⌘F (navigation mode) | Find in the current tale |
-| ↑ / ↓ (find) | Select a result without wrapping |
-| Enter / Escape (find) | Jump to the result / cancel |
-| Enter (input mode) | Save an entry and return to navigation |
-| Escape (input mode) | Keep the draft and return to navigation |
-| ← / → | Switch tales in creation order, wrapping at either end |
-| ⌘N | Create a named tale |
-| ⌘O | Open / change database |
-
-Each tale has independent note and todo drafts kept in memory. Quitting or switching databases clears both. Entries support 560 Swift `Character`s (extended grapheme clusters, so an emoji counts as one). Text wraps visually; pasted line breaks become spaces. Overlength drafts remain available for shortening and cannot be submitted. Blank entries do nothing.
-
-Completed todos remain in their original position. In the unfinished view, completion selects the next remaining entry, or the previous one at the end. Starting a note returns to the full stream. Entries cannot yet be edited, deleted, or converted.
-
-Find searches all notes and todos in the current tale, including completed entries and entries hidden by the Unfinished filter. It matches literal substrings, ignoring case and accents, with results updating as you type, newest first. Spaces and punctuation are literal. Matching text is highlighted; ↑ / ↓ selects a result while typing focus stays in the search field. Enter closes Find, selects and scrolls to the entry, and switches to All if necessary to reveal it. Escape leaves the tale’s selection, filter, and scroll position untouched. Each search starts blank. Search runs entirely in memory.
-
-## Tales
-
-A database holds multiple named tales (projects), each with its own notes and todos. **⌘N** opens New Tale: enter a name and press Enter to create and switch to it, or Escape to cancel. Names are required, trimmed, and unique within the database (ignoring case). Creating a tale while writing keeps the previous tale's draft. In a new database, press **⌘N** to name the first tale; existing databases migrate their entries into **Personal** without changing entry IDs, timestamps, or completion.
-
-New Tale uses the same textured parchment and warm ink as the app in both appearances. A small prompt sits above a focused, borderless serif writing line, with quiet Enter / Escape guidance and inline validation; there are no form buttons.
-
-Use **← / →** in navigation mode to switch tales in creation order, wrapping at the ends. While writing, the arrows move the text cursor; Escape returns to navigation. The title is plain text. Creation starts only with **⌘N**, and switching uses only the arrows; there are no tale menus or previous/next buttons. Renaming, archiving, deleting tales, and moving entries between tales are deferred.
-
-During a session, each tale remembers its drafts, All / Unfinished filter, selected entry, and scroll position. Switching returns to navigation mode. The database remembers the last active tale between launches; drafts and viewing positions last until quitting or changing databases.
-
-## Tale trees
-
-Choose **View → Appearance → System, Light, or Dark** to change this app's appearance independently of macOS. The choice is remembered between launches; System follows your Mac's current appearance. Light mode uses soft parchment surfaces, warm ink, and muted moss-green accents. A faint tiled paper texture sits behind the content in both appearances and stays still when scrolling. Its strength is set by `textureOpacity` in `TaleBackground.swift`. Dark mode uses warm earth-brown surfaces, ivory text, muted olive accents, and soft gold tree highlights, with the same texture opacity and smoothing as light mode.
-
-Three intertwined SwiftUI ink strands frame each side of the tale, with irregular bends, varied tapered branch stubs, and occasional forked tips. The two margins have distinct, fixed drawings that stay stable as content changes; their quiet green ink suggests the margins of an illustrated book. The wider illustrated margins extend from the top to the bottom of the window, with the entries, composer, and keyboard guidance between them. A horizontal band of light on both trees follows the list's scroll position: newest entries at the top, oldest at the bottom. Click anywhere along either tree to jump proportionally through the current list. The trees follow the All / Unfinished filter, and the ordinary scroll indicators are hidden. Trackpad, mouse-wheel, and keyboard navigation still work.
-
-Saving a note or todo pulses one independently chosen random strand on each side, once and at the same time, fading out over 1.6 seconds. The trees narrow with the window, support accessibility increment/decrement actions, and omit the pulse's slight expansion when Reduce Motion is enabled. Empty tales have no position glow; tales that fit entirely in view do not scroll when clicked.
-
-## Typography
-
-Space titles and welcome/empty-state headings use bundled Cormorant Garamond by Christian Thalmann, under the SIL Open Font License included in `Sources/TaleApp/Resources/Fonts/OFL.txt`. Entry text and controls retain the native system fonts.
-
-## Timestamps
-
-Each entry displays its permanent SQLite-generated integer ID beside the timestamp, starting at `#1` and increasing across both notes and todos within each database. Filtering or completing an entry never changes its ID.
-
-Timestamps refresh every 30 seconds in local time: `just now`, minutes or hours ago for today, `yesterday HH:mm`, then weekdays for 2–6 days ago. After 7 days they use `d MMM HH:mm`, including the year when different from the current year. Calendar boundaries take priority over elapsed hours. Hover over a timestamp to see the full date and time.
-
-## Your database
-
-Create or open a database using the first-launch screen. The app remembers the selected file with a security-scoped bookmark. It will never silently create a replacement for a missing database. File → Change Database switches files. Opening an unrelated SQLite file is rejected.
-
-Entries are committed immediately using SQLite transactions. The database uses an application ID (`ATOD`) and schema version 2 (version 1 databases migrate atomically on opening). A temporary SQLite rollback-journal file can exist next to the database while saving. To back up or move the database, quit the app first and copy the `.sqlite` file. Prefer a local folder rather than a cloud-synced location.
-
-The app sandbox grants access only to user-selected files and their stored bookmarks. It has no inbound or outbound network entitlements. The app contains no networking code or third-party libraries.
-
-SQLite journal access uses Apple's [related-file coordination](https://developer.apple.com/documentation/security/accessing-files-from-the-macos-app-sandbox). New databases are initialized in the app's temporary container before being copied to the chosen location, so first launch doesn't need access to the entire containing folder.

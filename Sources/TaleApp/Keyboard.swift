@@ -25,12 +25,33 @@ struct NavigationKeyboard: NSViewRepresentable {
             monitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
                 let handled = MainActor.assumeIsolated {
                     guard let self, let window = self.view?.window,
-                          event.window === window, window.isKeyWindow,
-                          window.attachedSheet == nil, NSApp.modalWindow == nil,
+                          (event.window === window || (self.model.isGoingTo && event.window === window.attachedSheet)),
+                          (window.isKeyWindow || (self.model.isGoingTo && window.attachedSheet?.isKeyWindow == true)),
+                          (window.attachedSheet == nil || self.model.isGoingTo), NSApp.modalWindow == nil,
                           self.model.errorMessage == nil,
                           self.model.databaseURL != nil, !self.model.isCreatingTale,
                           !self.model.isSearching else { return false }
                     let modifiers = event.modifierFlags.intersection([.command, .control, .option, .shift])
+                    if self.model.isGoingTo {
+                        guard modifiers.intersection([.command, .control, .option]).isEmpty else { return false }
+                        // Consume the whole sequence here, including during sheet presentation.
+                        // Unrecognized keys must not trigger ordinary navigation commands.
+                        guard !event.isARepeat else { return true }
+                        if event.keyCode == 53 { self.model.isGoingTo = false }
+                        else if event.keyCode == 51 { self.model.goToBack() }
+                        else if let key = event.characters?.lowercased() {
+                            if self.model.goToDirection == nil {
+                                if let direction = GoToDirection(rawValue: key) { self.model.chooseGoTo(direction) }
+                            } else {
+                                switch key {
+                                case "n": self.model.finishGoTo(kind: .note)
+                                case "t": self.model.finishGoTo(kind: .todo)
+                                default: break
+                                }
+                            }
+                        }
+                        return true
+                    }
                     if modifiers == .command, event.charactersIgnoringModifiers?.lowercased() == "n" {
                         self.model.beginNewTale()
                         return true
@@ -44,6 +65,8 @@ struct NavigationKeyboard: NSViewRepresentable {
                     case 125: self.model.move(1)
                     default:
                         switch event.characters?.lowercased() {
+                        case "g":
+                            if !event.isARepeat { self.model.beginGoTo() }
                         case "/": self.model.beginSearch()
                         case "n": self.model.begin(.note)
                         case "t": self.model.begin(.todo)

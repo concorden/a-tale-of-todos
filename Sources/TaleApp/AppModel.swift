@@ -10,6 +10,10 @@ final class AppModel {
     var scrollPosition = TaleScrollPosition()
     var isCreatingTale = false
     var isSearching = false
+    var isGoingTo = false
+    var goToDirection: GoToDirection?
+    var goToMessage: String?
+    var lastGoToJump: UUID?
     var lastSearchJump: UUID?
     var newTaleName = ""
     var newTaleError: String?
@@ -66,7 +70,7 @@ final class AppModel {
     init() { restoreDatabase() }
 
     func begin(_ kind: EntryKind) {
-        guard activeTaleID != nil, !isCreatingTale, !isSearching else { return }
+        guard activeTaleID != nil, !isCreatingTale, !isSearching, !isGoingTo else { return }
         self.kind = kind
         if kind == .note && unfinishedOnly { toggleFilter() }
         isInput = true
@@ -75,8 +79,42 @@ final class AppModel {
     func leaveInput() { isInput = false }
 
     func beginSearch() {
-        guard activeTaleID != nil, !isInput, !isCreatingTale, errorMessage == nil else { return }
+        guard activeTaleID != nil, !isInput, !isCreatingTale, !isGoingTo, errorMessage == nil else { return }
         isSearching = true
+    }
+
+    func beginGoTo() {
+        guard activeTaleID != nil, !isInput, !isCreatingTale, !isSearching, errorMessage == nil else { return }
+        goToDirection = nil
+        goToMessage = nil
+        isGoingTo = true
+    }
+
+    func chooseGoTo(_ direction: GoToDirection) {
+        guard isGoingTo else { return }
+        goToDirection = direction
+        goToMessage = nil
+        if !direction.needsKind { finishGoTo() }
+    }
+
+    func finishGoTo(kind: EntryKind? = nil) {
+        guard isGoingTo, let direction = goToDirection else { return }
+        guard let id = Navigation.destinationID(in: visibleEntries, selection: selectedID,
+                                                direction: direction, kind: kind) else {
+            goToMessage = kind.map { "No \(direction.title.lowercased()) \($0.rawValue) in this view." }
+                ?? "No entries in this view."
+            if !direction.needsKind { goToDirection = nil }
+            return
+        }
+        select(id)
+        isGoingTo = false
+        // Repeating a jump also reveals a selected entry scrolled out of view.
+        lastGoToJump = UUID()
+    }
+
+    func goToBack() {
+        goToDirection = nil
+        goToMessage = nil
     }
 
     func jumpToSearchResult(_ id: Int64) {
@@ -134,7 +172,7 @@ final class AppModel {
     }
 
     func beginNewTale() {
-        guard database != nil, !isCreatingTale, !isSearching else { return }
+        guard database != nil, !isCreatingTale, !isSearching, !isGoingTo else { return }
         newTaleName = ""
         newTaleError = nil
         isCreatingTale = true
