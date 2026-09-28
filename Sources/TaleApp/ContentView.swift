@@ -43,6 +43,7 @@ struct ContentView: View {
         }
         .sheet(isPresented: $model.isCreatingTale) {
             NewTaleSheet(model: model)
+                .presentationBackground(colorScheme == .dark ? palette.surface : Color(nsColor: .windowBackgroundColor))
         }
         .alert("A Tale of Todos", isPresented: Binding(
             get: { model.errorMessage != nil },
@@ -203,7 +204,7 @@ struct ContentView: View {
             Spacer(minLength: 0)
         }
         .padding(.horizontal, 16).padding(.vertical, 14)
-        .background(palette.accent.opacity(0.07), in: RoundedRectangle(cornerRadius: 8))
+        .background(palette.selection, in: RoundedRectangle(cornerRadius: 8))
         .overlay(alignment: .leading) {
             RoundedRectangle(cornerRadius: 2).fill(palette.accent).frame(width: 3).padding(.vertical, 13)
         }
@@ -309,7 +310,7 @@ private struct EntryRow: View {
             Spacer(minLength: 0)
         }
         .padding(.horizontal, 16).padding(.vertical, 14)
-        .background(selected ? palette.accent.opacity(0.07) : Color.clear, in: RoundedRectangle(cornerRadius: 8))
+        .background(selected ? palette.selection : Color.clear, in: RoundedRectangle(cornerRadius: 8))
         .overlay(alignment: .leading) {
             if selected { RoundedRectangle(cornerRadius: 2).fill(palette.accent).frame(width: 3).padding(.vertical, 13) }
         }
