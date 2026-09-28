@@ -43,7 +43,7 @@ struct ContentView: View {
         }
         .sheet(isPresented: $model.isCreatingTale) {
             NewTaleSheet(model: model)
-                .presentationBackground(colorScheme == .dark ? palette.surface : Color(nsColor: .windowBackgroundColor))
+                .presentationBackground { TaleBackground() }
         }
         .alert("A Tale of Todos", isPresented: Binding(
             get: { model.errorMessage != nil },
@@ -239,30 +239,47 @@ struct ContentView: View {
 
 private struct NewTaleSheet: View {
     @Bindable var model: AppModel
+    @Environment(\.colorScheme) private var colorScheme
     @FocusState private var nameFocused: Bool
 
+    private var palette: TalePalette { TalePalette(colorScheme: colorScheme) }
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            Text("New Tale").font(TaleTypography.heading(size: 28))
-            TextField("Tale name", text: $model.newTaleName)
-                .textFieldStyle(.roundedBorder)
+        VStack(alignment: .leading, spacing: 0) {
+            Text("What will your next tale be about?")
+                .font(TaleTypography.heading(size: 18))
+                .foregroundStyle(palette.secondaryInk)
+                .accessibilityAddTraits(.isHeader)
+                .padding(.bottom, 16)
+
+            TextField("", text: $model.newTaleName)
+                .textFieldStyle(.plain)
+                .font(TaleTypography.heading(size: 34))
+                .foregroundStyle(palette.ink)
+                .tint(palette.accent)
+                .frame(minHeight: 44)
+                .accessibilityLabel("Tale name")
+                .accessibilityHint("Press Enter to begin your tale, or Escape to cancel.")
                 .focused($nameFocused)
                 .onSubmit { model.createTale() }
                 .onChange(of: model.newTaleName) { _, _ in model.newTaleError = nil }
+
             if let message = model.newTaleError ?? (model.newTaleName.isEmpty ? nil : model.taleNameValidation) {
-                Text(message).font(.callout).foregroundStyle(.red)
+                Text(message)
+                    .font(.system(size: 12))
+                    .foregroundStyle(palette.secondaryInk)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.top, 12)
             }
-            HStack {
-                Spacer()
-                Button("Cancel") { model.isCreatingTale = false }
-                    .keyboardShortcut(.cancelAction)
-                Button("Create Tale", action: model.createTale)
-                    .keyboardShortcut(.defaultAction)
-                    .disabled(model.taleNameValidation != nil)
-            }
+
+            Text("enter to begin · esc to return")
+                .font(.system(size: 10, design: .monospaced))
+                .foregroundStyle(palette.mutedInk)
+                .padding(.top, 26)
         }
-        .padding(28)
-        .frame(width: 360)
+        .padding(40)
+        .frame(width: 460)
+        .onExitCommand { model.isCreatingTale = false }
         .onAppear { nameFocused = true }
     }
 }

@@ -50,6 +50,8 @@ Completed todos remain in their original position. In the unfinished view, compl
 
 A database holds multiple named tales (projects), each with its own notes and todos. **⌘N** opens New Tale: enter a name and press Enter to create and switch to it, or Escape to cancel. Names are required, trimmed, and unique within the database (ignoring case). Creating a tale while writing keeps the previous tale's draft. In a new database, press **⌘N** to name the first tale; existing databases migrate their entries into **Personal** without changing entry IDs, timestamps, or completion.
 
+New Tale uses the same textured parchment and warm ink as the app in both appearances. A small prompt sits above a focused, borderless serif writing line, with quiet Enter / Escape guidance and inline validation; there are no form buttons.
+
 Use **← / →** in navigation mode to switch tales in creation order, wrapping at the ends. While writing, the arrows move the text cursor; Escape returns to navigation. The title is plain text. Creation starts only with **⌘N**, and switching uses only the arrows; there are no tale menus or previous/next buttons. Renaming, archiving, deleting tales, and moving entries between tales are deferred.
 
 During a session, each tale remembers its drafts, All / Unfinished filter, selected entry, and scroll position. Switching returns to navigation mode. The database remembers the last active tale between launches; drafts and viewing positions last until quitting or changing databases.
