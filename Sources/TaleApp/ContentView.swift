@@ -59,7 +59,7 @@ struct ContentView: View {
             .lineLimit(1)
             .truncationMode(.tail)
             .accessibilityAddTraits(.isHeader)
-            .frame(maxWidth: 690, alignment: .leading)
+            .frame(maxWidth: 760, alignment: .leading)
             .padding(.horizontal, 28)
             .padding(.top, 30)
             .padding(.bottom, 48)
@@ -142,7 +142,7 @@ struct ContentView: View {
                             }
                         }
                     }
-                    .frame(maxWidth: 690)
+                    .frame(maxWidth: 760)
                     .frame(maxWidth: .infinity)
                     .padding(.horizontal, 22)
                     .padding(.vertical, 25)
