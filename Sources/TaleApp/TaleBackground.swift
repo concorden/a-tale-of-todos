@@ -4,9 +4,9 @@ import SwiftUI
 struct TaleBackground: View {
     @Environment(\.colorScheme) private var colorScheme
 
-    // Soften fine fibers that can appear to shimmer behind text.
-    private let textureSoftness: CGFloat = 1
-    private let textureOpacity = 0.08
+    // Keep broader paper variation visible while smoothing away fine fibers.
+    private let textureSoftness: CGFloat = 2.5
+    private let textureOpacity = 0.14
 
     // Load the loose SwiftPM resource through AppKit, which also honors @2x sizing.
     private static let paperGrain = Bundle.module.image(forResource: "PaperGrain")
