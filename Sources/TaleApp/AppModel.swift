@@ -11,6 +11,7 @@ final class AppModel {
     var isCreatingTale = false
     var isSearching = false
     var isGoingTo = false
+    var isShowingHelp = false
     var goToDirection: GoToDirection?
     var goToMessage: String?
     var lastGoToJump: UUID?
@@ -78,8 +79,13 @@ final class AppModel {
 
     init() { restoreDatabase() }
 
+    func showKeyboardHelp() {
+        guard !isCreatingTale, !isSearching, !isGoingTo, errorMessage == nil else { return }
+        isShowingHelp = true
+    }
+
     func begin(_ kind: EntryKind) {
-        guard activeTaleID != nil, !isCreatingTale, !isSearching, !isGoingTo else { return }
+        guard activeTaleID != nil, !isCreatingTale, !isSearching, !isGoingTo, !isShowingHelp else { return }
         self.kind = kind
         if kind == .note && unfinishedOnly { toggleFilter() }
         isInput = true
@@ -88,12 +94,12 @@ final class AppModel {
     func leaveInput() { isInput = false }
 
     func beginSearch() {
-        guard activeTaleID != nil, !isInput, !isCreatingTale, !isGoingTo, errorMessage == nil else { return }
+        guard activeTaleID != nil, !isInput, !isCreatingTale, !isGoingTo, !isShowingHelp, errorMessage == nil else { return }
         isSearching = true
     }
 
     func beginGoTo() {
-        guard activeTaleID != nil, !isInput, !isCreatingTale, !isSearching, errorMessage == nil else { return }
+        guard activeTaleID != nil, !isInput, !isCreatingTale, !isSearching, !isShowingHelp, errorMessage == nil else { return }
         goToDirection = nil
         goToMessage = nil
         isGoingTo = true
@@ -145,7 +151,7 @@ final class AppModel {
     }
 
     func followScroll(_ id: Int64) {
-        guard !isInput, !isCreatingTale, !isSearching, !isGoingTo, errorMessage == nil,
+        guard !isInput, !isCreatingTale, !isSearching, !isGoingTo, !isShowingHelp, errorMessage == nil,
               id != selectedID, visibleEntries.contains(where: { $0.id == id }) else { return }
         selection = EntrySelection(id: id, followsScroll: true)
     }
@@ -187,7 +193,7 @@ final class AppModel {
     }
 
     func beginNewTale() {
-        guard database != nil, !isCreatingTale, !isSearching, !isGoingTo else { return }
+        guard database != nil, !isCreatingTale, !isSearching, !isGoingTo, !isShowingHelp else { return }
         newTaleName = ""
         newTaleError = nil
         isCreatingTale = true

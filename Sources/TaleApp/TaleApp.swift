@@ -43,31 +43,29 @@ struct TaleApp: App {
             }
             CommandGroup(replacing: .newItem) {
                 Button("Create Database…", action: model.createDatabase)
-                    .disabled(model.isCreatingTale || model.isSearching || model.isGoingTo)
+                    .disabled(model.isCreatingTale || model.isSearching || model.isGoingTo || model.isShowingHelp)
                 Button(model.databaseURL == nil ? "Open Database…" : "Change Database…", action: model.openDatabase)
                     .keyboardShortcut("o", modifiers: .command)
-                    .disabled(model.isCreatingTale || model.isSearching || model.isGoingTo)
+                    .disabled(model.isCreatingTale || model.isSearching || model.isGoingTo || model.isShowingHelp)
             }
             CommandMenu("Entry") {
                 Button("Find in Tale…", action: model.beginSearch)
                     .keyboardShortcut("f", modifiers: .command)
-                    .disabled(model.activeTaleID == nil || model.isInput || model.isCreatingTale || model.isSearching || model.isGoingTo)
+                    .disabled(model.activeTaleID == nil || model.isInput || model.isCreatingTale || model.isSearching || model.isGoingTo || model.isShowingHelp)
                 Button("Go to…", action: model.beginGoTo)
-                    .disabled(model.activeTaleID == nil || model.isInput || model.isCreatingTale || model.isSearching || model.isGoingTo)
+                    .disabled(model.activeTaleID == nil || model.isInput || model.isCreatingTale || model.isSearching || model.isGoingTo || model.isShowingHelp)
                 Divider()
-                Button("New Note") { model.begin(.note) }.disabled(model.activeTaleID == nil || model.isCreatingTale || model.isSearching || model.isGoingTo)
-                Button("New Todo") { model.begin(.todo) }.disabled(model.activeTaleID == nil || model.isCreatingTale || model.isSearching || model.isGoingTo)
+                Button("New Note") { model.begin(.note) }.disabled(model.activeTaleID == nil || model.isCreatingTale || model.isSearching || model.isGoingTo || model.isShowingHelp)
+                Button("New Todo") { model.begin(.todo) }.disabled(model.activeTaleID == nil || model.isCreatingTale || model.isSearching || model.isGoingTo || model.isShowingHelp)
                 Divider()
                 Button("Toggle Completion", action: model.toggleSelected)
-                    .disabled(model.isGoingTo || model.isSearching || model.isCreatingTale || model.isInput || !model.entries.contains { $0.id == model.selectedID && $0.kind == .todo })
+                    .disabled(model.isShowingHelp || model.isGoingTo || model.isSearching || model.isCreatingTale || model.isInput || !model.entries.contains { $0.id == model.selectedID && $0.kind == .todo })
                 Button(model.unfinishedOnly ? "Show All Entries" : "Show Unfinished Todos", action: model.toggleFilter)
-                    .disabled(model.activeTaleID == nil || model.isInput || model.isCreatingTale || model.isSearching || model.isGoingTo)
+                    .disabled(model.activeTaleID == nil || model.isInput || model.isCreatingTale || model.isSearching || model.isGoingTo || model.isShowingHelp)
             }
             CommandGroup(replacing: .help) {
-                Button("Keyboard Shortcuts") {
-                    model.errorMessage = "In navigation mode:\nN — new note\nT — new todo\n↑ / ↓ or J / K — move selection\n← / → — switch tales (wraps around)\nX — toggle todo completion\nF — show unfinished todos / all entries\nG — go to an entry\n/ or ⌘F — find in this tale\n\n⌘N — create a named tale\n\nIn input mode:\nEnter — add entry\nEscape — keep draft and return to navigation\n\nIn find:\n↑ / ↓ — select result\nEnter — jump to entry\nEscape — cancel\n\nIn Go to:\nH / T — head (newest) / tail (oldest)\nP / N — previous / next in display order\nF / L — first (oldest) / last (newest)\nThen N / T — note / todo\nJumps use the current view and do not wrap.\nDelete — back to directions\nEscape — cancel\n\nEach tale keeps its own drafts until you quit or change databases."
-                }
-                .disabled(model.isSearching || model.isGoingTo)
+                Button("Keyboard Shortcuts", action: model.showKeyboardHelp)
+                    .disabled(model.isCreatingTale || model.isSearching || model.isGoingTo || model.isShowingHelp || model.errorMessage != nil)
             }
         }
     }

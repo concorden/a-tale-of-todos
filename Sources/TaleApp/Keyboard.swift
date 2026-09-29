@@ -30,7 +30,7 @@ struct NavigationKeyboard: NSViewRepresentable {
                           (window.attachedSheet == nil || self.model.isGoingTo), NSApp.modalWindow == nil,
                           self.model.errorMessage == nil,
                           self.model.databaseURL != nil, !self.model.isCreatingTale,
-                          !self.model.isSearching else { return false }
+                          !self.model.isSearching, !self.model.isShowingHelp else { return false }
                     let modifiers = event.modifierFlags.intersection([.command, .control, .option, .shift])
                     if self.model.isGoingTo {
                         guard modifiers.intersection([.command, .control, .option]).isEmpty else { return false }
@@ -59,12 +59,16 @@ struct NavigationKeyboard: NSViewRepresentable {
                     guard self.model.activeTaleID != nil, !self.model.isInput,
                           modifiers.intersection([.command, .control, .option]).isEmpty else { return false }
                     switch event.keyCode {
+                    case 36, 76: // Return and numeric keypad Enter.
+                        if !event.isARepeat { self.model.toggleSelected() }
                     case 123: self.model.moveTale(-1)
                     case 124: self.model.moveTale(1)
                     case 126: self.model.move(-1)
                     case 125: self.model.move(1)
                     default:
                         switch event.characters?.lowercased() {
+                        case "?":
+                            if !event.isARepeat { self.model.showKeyboardHelp() }
                         case "g":
                             if !event.isARepeat { self.model.beginGoTo() }
                         case "/": self.model.beginSearch()
@@ -72,7 +76,6 @@ struct NavigationKeyboard: NSViewRepresentable {
                         case "t": self.model.begin(.todo)
                         case "j": self.model.move(1)
                         case "k": self.model.move(-1)
-                        case "x": self.model.toggleSelected()
                         case "f": self.model.toggleFilter()
                         default: return false
                         }

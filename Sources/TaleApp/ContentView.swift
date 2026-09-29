@@ -22,12 +22,15 @@ struct ContentView: View {
                     HStack(spacing: 0) {
                         tree(side: 0, width: treeWidth)
                         VStack(spacing: 0) {
+                            if model.activeTaleID != nil {
+                                keyboardHintBar
+                                    .offset(y: -geometry.safeAreaInsets.top)
+                            }
                             taleHeader
                             if model.activeTaleID == nil {
                                 firstTale
                             } else {
                                 stream.id(model.activeTaleID)
-                                footer
                             }
                         }
                         tree(side: 1, width: treeWidth)
@@ -52,6 +55,10 @@ struct ContentView: View {
         }
         .sheet(isPresented: $model.isGoingTo) {
             GoToSheet(model: model)
+                .presentationBackground { TaleBackground() }
+        }
+        .sheet(isPresented: $model.isShowingHelp) {
+            KeyboardHelpSheet()
                 .presentationBackground { TaleBackground() }
         }
         .alert("A Tale of Todos", isPresented: Binding(
@@ -254,27 +261,25 @@ struct ContentView: View {
         }
     }
 
-    private var footer: some View {
+    private var keyboardHintBar: some View {
         HStack(spacing: 12) {
-            if model.isInput {
-                Text("Drafts stay until you quit")
-            } else {
-                Text("n note · t todo · ↑↓ move · ←→ tales · x complete · f filter · / find · g go to")
-            }
+            Button("Help will be given to those who press ?", action: model.showKeyboardHelp)
+                .buttonStyle(.plain)
+                .help("Show keyboard shortcuts")
             Spacer(minLength: 0)
-            Button(action: model.toggleFilter) {
-                Text(model.unfinishedOnly ? "Unfinished" : "All")
-                    .foregroundStyle(model.unfinishedOnly ? palette.accent : palette.secondaryInk)
+            if model.unfinishedOnly {
+                Button("filter: unfinished", action: model.toggleFilter)
+                    .foregroundStyle(palette.accent)
+                    .buttonStyle(.plain)
+                    .disabled(model.isInput)
+                    .help("Clear filter (F)")
+                    .accessibilityLabel("Filter: unfinished")
             }
-            .buttonStyle(.plain)
-            .disabled(model.isInput)
-            .help("Toggle unfinished todos (F)")
-            .accessibilityLabel("Filter: \(model.unfinishedOnly ? "Unfinished" : "All")")
         }
         .font(.system(size: 10, design: .monospaced))
         .fixedSize(horizontal: false, vertical: true)
         .foregroundStyle(palette.secondaryInk)
-        .padding(.horizontal, 22).padding(.bottom, 16)
+        .padding(.horizontal, 22).padding(.top, 16)
     }
 
 }
