@@ -13,6 +13,8 @@ It also works slightly differently from most note taking apps. It is built for l
 
 It's a native macOS app written in Swift. It stores your data in a local SQLite db, never connects to the internet, and doesn't require creating an account.
 
+Hold Command (⌘) for half a second to see your tales, then click any tale in the list. `⌘1`–`⌘9` switch immediately to one of the first nine tales, and `⌘N` creates a tale, even before the chooser appears. Escape or releasing Command closes the chooser. When you’re not writing an entry, left and right arrows also switch tales, and `C` copies the selected entry’s text.
+
 ## Build and run
 
 Requires macOS 14 or later and Swift 6 (Xcode or Apple's Command Line Tools).
@@ -39,4 +41,3 @@ bash scripts/swift.sh test
 
 ## AI disclaimer
 Don't look too much at the code - I haven't (yet).
-

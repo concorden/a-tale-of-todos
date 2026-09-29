@@ -39,6 +39,18 @@ struct ContentView: View {
             }
         }
         .background { TaleBackground() }
+        .allowsHitTesting(!model.isSwitchingTales)
+        .accessibilityHidden(model.isSwitchingTales)
+        .overlay {
+            if model.isSwitchingTales {
+                ZStack {
+                    Color.black.opacity(0.18)
+                        .ignoresSafeArea()
+                        .onTapGesture { model.isSwitchingTales = false }
+                    TaleSwitcher(model: model)
+                }
+            }
+        }
         .foregroundStyle(palette.ink)
         .tint(palette.accent)
         .background(NavigationKeyboard(model: model).frame(width: 0, height: 0))
@@ -220,11 +232,7 @@ struct ContentView: View {
 
     private var composer: some View {
         HStack(alignment: .top, spacing: 12) {
-            Image(systemName: model.kind == .todo ? "square" : "text.alignleft")
-                .font(.system(size: model.kind == .todo ? 16 : 14))
-                .foregroundStyle(model.kind == .todo ? palette.secondaryInk : palette.mutedInk)
-                .frame(width: 20, height: 21)
-                .accessibilityHidden(true)
+            TaleEntryMark(kind: model.kind)
             VStack(alignment: .leading, spacing: 7) {
                 ComposerEditor(text: Binding(get: { model.draft }, set: { model.draft = $0 }),
                                submit: submitEntry, escape: model.leaveInput)
@@ -375,18 +383,13 @@ private struct EntryRow: View {
         HStack(alignment: .top, spacing: 12) {
             if entry.kind == .todo {
                 Button(action: toggle) {
-                    Image(systemName: entry.isCompleted ? "checkmark.square.fill" : "square")
-                        .font(.system(size: 16, weight: .regular))
-                        .foregroundStyle(entry.isCompleted ? palette.accent.opacity(0.65) : palette.secondaryInk)
-                        .frame(width: 20, height: 21)
+                    TaleEntryMark(kind: .todo, isCompleted: entry.isCompleted)
+                        .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel(entry.isCompleted ? "Mark unfinished" : "Complete todo")
             } else {
-                Image(systemName: "text.alignleft")
-                    .font(.system(size: 14))
-                    .foregroundStyle(palette.mutedInk)
-                    .frame(width: 20, height: 21)
+                TaleEntryMark(kind: .note)
             }
             VStack(alignment: .leading, spacing: 7) {
                 Text(entry.text)

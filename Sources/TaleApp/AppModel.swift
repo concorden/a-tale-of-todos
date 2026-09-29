@@ -12,6 +12,7 @@ final class AppModel {
     var isSearching = false
     var isGoingTo = false
     var isShowingHelp = false
+    var isSwitchingTales = false
     var goToDirection: GoToDirection?
     var goToMessage: String?
     var lastGoToJump: UUID?
@@ -151,7 +152,7 @@ final class AppModel {
     }
 
     func followScroll(_ id: Int64) {
-        guard !isInput, !isCreatingTale, !isSearching, !isGoingTo, !isShowingHelp, errorMessage == nil,
+        guard !isInput, !isCreatingTale, !isSearching, !isGoingTo, !isShowingHelp, !isSwitchingTales, errorMessage == nil,
               id != selectedID, visibleEntries.contains(where: { $0.id == id }) else { return }
         selection = EntrySelection(id: id, followsScroll: true)
     }
@@ -175,6 +176,12 @@ final class AppModel {
         toggle(selectedID)
     }
 
+    func copySelected() {
+        guard !isInput, let entry = visibleEntries.first(where: { $0.id == selectedID }) else { return }
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(entry.text, forType: .string)
+    }
+
     func toggle(_ id: Int64) {
         guard let database, let activeTaleID, let index = entries.firstIndex(where: { $0.id == id }), entries[index].kind == .todo else { return }
         let oldVisible = visibleEntries
@@ -194,6 +201,7 @@ final class AppModel {
 
     func beginNewTale() {
         guard database != nil, !isCreatingTale, !isSearching, !isGoingTo, !isShowingHelp else { return }
+        isSwitchingTales = false
         newTaleName = ""
         newTaleError = nil
         isCreatingTale = true
@@ -215,6 +223,17 @@ final class AppModel {
     func moveTale(_ offset: Int) {
         guard !isInput, !isCreatingTale,
               let id = Navigation.movedTaleID(in: tales, selection: activeTaleID, offset: offset) else { return }
+        switchTale(id)
+    }
+
+    func beginTaleSwitch() {
+        guard database != nil, !isCreatingTale, !isSearching, !isGoingTo,
+              !isShowingHelp, errorMessage == nil else { return }
+        isSwitchingTales = true
+    }
+
+    func chooseTale(_ id: Int64) {
+        isSwitchingTales = false
         switchTale(id)
     }
 

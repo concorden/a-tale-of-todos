@@ -19,19 +19,71 @@ struct NavigationKeyboard: NSViewRepresentable {
         let model: AppModel
         weak var view: NSView?
         var monitor: Any?
+        var resignObserver: NSObjectProtocol?
+        var commandHeld = false
+        var pendingTaleSwitch: Task<Void, Never>?
         init(model: AppModel) { self.model = model }
 
+        func cancelTaleSwitch() {
+            pendingTaleSwitch?.cancel()
+            pendingTaleSwitch = nil
+            model.isSwitchingTales = false
+        }
+
+        func scheduleTaleSwitch() {
+            cancelTaleSwitch()
+            pendingTaleSwitch = Task { [weak self] in
+                do { try await Task.sleep(for: .milliseconds(500)) }
+                catch { return }
+                guard !Task.isCancelled, let self else { return }
+                self.pendingTaleSwitch = nil
+                guard self.commandHeld, let window = self.view?.window,
+                      window.isKeyWindow, window.attachedSheet == nil,
+                      NSApp.modalWindow == nil else { return }
+                self.model.beginTaleSwitch()
+            }
+        }
+
         func install() {
-            monitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            resignObserver = NotificationCenter.default.addObserver(
+                forName: NSWindow.didResignKeyNotification, object: nil, queue: .main
+            ) { [weak self] notification in
+                let window = notification.object as? NSWindow
+                MainActor.assumeIsolated {
+                    guard let self, let window,
+                          window === self.view?.window else { return }
+                    self.cancelTaleSwitch()
+                    self.commandHeld = false
+                }
+            }
+            monitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown, .flagsChanged]) { [weak self] event in
                 let handled = MainActor.assumeIsolated {
-                    guard let self, let window = self.view?.window,
+                    guard let self else { return false }
+                    let modifiers = event.modifierFlags.intersection([.command, .control, .option, .shift])
+                    let wasCommandHeld = self.commandHeld
+                    self.commandHeld = modifiers.contains(.command)
+                    guard let window = self.view?.window,
                           (event.window === window || (self.model.isGoingTo && event.window === window.attachedSheet)),
                           (window.isKeyWindow || (self.model.isGoingTo && window.attachedSheet?.isKeyWindow == true)),
                           (window.attachedSheet == nil || self.model.isGoingTo), NSApp.modalWindow == nil,
                           self.model.errorMessage == nil,
                           self.model.databaseURL != nil, !self.model.isCreatingTale,
-                          !self.model.isSearching, !self.model.isShowingHelp else { return false }
-                    let modifiers = event.modifierFlags.intersection([.command, .control, .option, .shift])
+                          !self.model.isSearching, !self.model.isShowingHelp else {
+                        self.cancelTaleSwitch()
+                        return false
+                    }
+                    if event.type == .flagsChanged {
+                        if modifiers != .command {
+                            self.cancelTaleSwitch()
+                        } else if !wasCommandHeld {
+                            self.scheduleTaleSwitch()
+                        }
+                        return false
+                    }
+                    let wasChoosingTale = self.model.isSwitchingTales || self.pendingTaleSwitch != nil
+                    // Any shortcut cancels the delayed popup, even before it appears.
+                    self.cancelTaleSwitch()
+                    if wasChoosingTale, event.keyCode == 53 { return true }
                     if self.model.isGoingTo {
                         guard modifiers.intersection([.command, .control, .option]).isEmpty else { return false }
                         // Consume the whole sequence here, including during sheet presentation.
@@ -52,9 +104,19 @@ struct NavigationKeyboard: NSViewRepresentable {
                         }
                         return true
                     }
-                    if modifiers == .command, event.charactersIgnoringModifiers?.lowercased() == "n" {
-                        self.model.beginNewTale()
-                        return true
+                    if modifiers == .command {
+                        let key = event.charactersIgnoringModifiers?.lowercased() ?? ""
+                        if key.count == 1, let digit = key.first, ("0"..."9").contains(digit) {
+                            if !event.isARepeat,
+                               let index = TaleChoice.index(for: key, count: self.model.tales.count) {
+                                self.model.chooseTale(self.model.tales[index].id)
+                            }
+                            return true
+                        }
+                        if key == "n" {
+                            if !event.isARepeat { self.model.beginNewTale() }
+                            return true
+                        }
                     }
                     guard self.model.activeTaleID != nil, !self.model.isInput,
                           modifiers.intersection([.command, .control, .option]).isEmpty else { return false }
@@ -77,6 +139,8 @@ struct NavigationKeyboard: NSViewRepresentable {
                         case "j": self.model.move(1)
                         case "k": self.model.move(-1)
                         case "f": self.model.toggleFilter()
+                        case "c":
+                            if !event.isARepeat { self.model.copySelected() }
                         default: return false
                         }
                     }
@@ -87,7 +151,10 @@ struct NavigationKeyboard: NSViewRepresentable {
         }
         func remove() {
             if let monitor { NSEvent.removeMonitor(monitor) }
+            if let resignObserver { NotificationCenter.default.removeObserver(resignObserver) }
             monitor = nil
+            resignObserver = nil
+            cancelTaleSwitch()
         }
     }
 }

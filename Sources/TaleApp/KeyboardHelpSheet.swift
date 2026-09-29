@@ -19,6 +19,7 @@ struct KeyboardHelpSheet: View {
                     shortcut("↑ / ↓ · J / K", "Move selection")
                     shortcut("← / →", "Switch tales")
                     shortcut("Enter", "Toggle todo completion")
+                    shortcut("C", "Copy selected entry")
                     shortcut("F", "Show unfinished todos / all entries")
                     shortcut("/ · ⌘F", "Find in this tale")
                     shortcut("G", "Go to an entry")
@@ -26,6 +27,8 @@ struct KeyboardHelpSheet: View {
                 }
 
                 section("Your tales") {
+                    shortcut("Hold ⌘", "Show tales after 0.5 seconds; click to switch")
+                    shortcut("⌘1–9", "Switch tales immediately")
                     shortcut("⌘N", "Create a named tale")
                     shortcut("⌘O", "Open a database")
                 }
