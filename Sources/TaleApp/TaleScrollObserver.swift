@@ -117,10 +117,6 @@ struct TaleScrollObserver: NSViewRepresentable {
                 guard let self else { return }
                 self.refreshScheduled = false
                 guard self.window != nil, let scrollView = self.enclosingScrollView else { return }
-                // Enforce this on the native view too: SwiftUI's hidden indicators
-                // can still leave a scroller visible with macOS's Always setting.
-                scrollView.hasVerticalScroller = false
-                scrollView.hasHorizontalScroller = false
                 if self.observedScrollView !== scrollView {
                     self.disconnect()
                     self.observedScrollView = scrollView

@@ -168,7 +168,8 @@ struct ContentView: View {
                                                    followScroll: model.followScroll))
                 }
             }
-            .scrollIndicators(.hidden)
+            // `.hidden` can still reserve a macOS scrollbar gutter on overflow.
+            .scrollIndicators(.never)
             .task(id: pinningEntryID) {
                 guard pinningEntryID != nil else { return }
                 // Let the saved row render with the draft's bottom marker before pinning it.
