@@ -129,11 +129,11 @@ private struct TreeStrand: Shape {
 
 struct TaleTree: View {
     let side: Int
-    let progress: CGFloat
-    let canScroll: Bool
-    let hasEntries: Bool
+    let focusedIndex: Int?
+    let entryCount: Int
+    let isComposing: Bool
     let pulse: TreePulse?
-    let navigate: (CGFloat) -> Void
+    let navigate: (Int) -> Void
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.colorScheme) private var colorScheme
@@ -143,6 +143,15 @@ struct TaleTree: View {
     private var palette: TalePalette { TalePalette(colorScheme: colorScheme) }
     private var ink: Color { palette.treeInk }
     private var light: Color { palette.treeLight }
+    private var progress: CGFloat {
+        guard !isComposing, let focusedIndex, entryCount > 1 else { return 0 }
+        return CGFloat(focusedIndex) / CGFloat(entryCount - 1)
+    }
+    private var focusDescription: String {
+        if isComposing { return "New entry draft" }
+        guard let focusedIndex else { return entryCount == 0 ? "Empty tale" : "No entry focused" }
+        return "Entry \(focusedIndex + 1) of \(entryCount)"
+    }
 
     var body: some View {
         GeometryReader { geometry in
@@ -163,7 +172,7 @@ struct TaleTree: View {
                     .scaleEffect(x: 1 + (reduceMotion ? 0 : amount * 0.045), y: 1)
                 }
 
-                if hasEntries {
+                if isComposing || focusedIndex != nil {
                     // A horizontal pool of light catches only the branches it crosses.
                     // There is no track or thumb drawn over the tree.
                     ZStack {
@@ -185,24 +194,26 @@ struct TaleTree: View {
                     }
                 }
             }
-            .opacity(hovering && canScroll ? 1 : 0.85)
+            .opacity(hovering && entryCount > 0 ? 1 : 0.85)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .contentShape(Rectangle())
             .onTapGesture { location in
-                guard canScroll else { return }
-                navigate(min(1, max(0, location.y / max(1, geometry.size.height))))
+                guard entryCount > 0 else { return }
+                let fraction = min(1, max(0, location.y / max(1, geometry.size.height)))
+                navigate(Int((fraction * CGFloat(entryCount - 1)).rounded()))
             }
             .onHover { hovering = $0 }
         }
-        .help(canScroll ? "Click to move through your tale" : "Your whole tale is in view")
+        .help(entryCount > 0 ? "Click to focus an entry in your tale" : "Your tale is waiting for its first entry")
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("\(side == 0 ? "Left" : "Right") tale navigation")
-        .accessibilityValue(!hasEntries ? "Empty tale" : canScroll ? "\(Int((progress * 100).rounded())) percent" : "Entire tale visible")
+        .accessibilityValue(focusDescription)
         .accessibilityAdjustableAction { direction in
-            guard canScroll else { return }
+            guard entryCount > 0 else { return }
+            let index = isComposing ? nil : focusedIndex
             switch direction {
-            case .increment: navigate(min(1, progress + 0.1))
-            case .decrement: navigate(max(0, progress - 0.1))
+            case .increment: navigate(min(entryCount - 1, (index ?? -1) + 1))
+            case .decrement: navigate(max(0, (index ?? 1) - 1))
             @unknown default: break
             }
         }

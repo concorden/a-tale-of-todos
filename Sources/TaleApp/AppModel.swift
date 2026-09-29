@@ -36,7 +36,16 @@ final class AppModel {
     }
 
     var entries: [Entry] = []
-    var selectedID: Int64?
+    struct EntrySelection: Equatable {
+        var id: Int64?
+        var followsScroll = false
+    }
+
+    var selection = EntrySelection()
+    var selectedID: Int64? {
+        get { selection.id }
+        set { selection = EntrySelection(id: newValue) }
+    }
     var kind: EntryKind = .todo
     var isInput = false
     var unfinishedOnly = false
@@ -133,6 +142,12 @@ final class AppModel {
     func select(_ id: Int64) {
         selectedID = id
         isInput = false
+    }
+
+    func followScroll(_ id: Int64) {
+        guard !isInput, !isCreatingTale, !isSearching, !isGoingTo, errorMessage == nil,
+              id != selectedID, visibleEntries.contains(where: { $0.id == id }) else { return }
+        selection = EntrySelection(id: id, followsScroll: true)
     }
 
     func submit() {

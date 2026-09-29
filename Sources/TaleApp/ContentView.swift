@@ -87,9 +87,15 @@ struct ContentView: View {
     }
 
     private func tree(side: Int, width: CGFloat) -> some View {
-        TaleTree(side: side, progress: scrollPosition.progress,
-                 canScroll: scrollPosition.canScroll, hasEntries: !model.visibleEntries.isEmpty,
-                 pulse: treePulse, navigate: scrollPosition.scroll)
+        let entries = model.visibleEntries
+        return TaleTree(side: side, focusedIndex: entries.firstIndex { $0.id == model.selectedID },
+                 entryCount: entries.count, isComposing: model.isInput,
+                 pulse: treePulse, navigate: { index in
+                     guard entries.indices.contains(index) else { return }
+                     model.select(entries[index].id)
+                     // Reveal the entry even if it was already selected but scrolled away.
+                     model.lastGoToJump = UUID()
+                 })
             .frame(width: width)
             .ignoresSafeArea(.container, edges: .vertical)
     }
@@ -146,6 +152,7 @@ struct ContentView: View {
                                 EntryRow(entry: entry, now: timeline.date, selected: model.selectedID == entry.id && !model.isInput,
                                          select: { model.select(entry.id) },
                                          toggle: { model.select(entry.id); model.toggle(entry.id) })
+                                    .background(TaleEntryAnchor(id: entry.id, position: scrollPosition))
                                     .id(entry.id)
                             }
                         }
@@ -154,12 +161,16 @@ struct ContentView: View {
                     .frame(maxWidth: .infinity)
                     .padding(.horizontal, 22)
                     .padding(.vertical, 25)
-                    .background(TaleScrollObserver(position: scrollPosition))
+                    .background(TaleScrollObserver(position: scrollPosition,
+                                                   selectedID: model.selectedID,
+                                                   followScroll: model.followScroll))
                 }
             }
             .scrollIndicators(.hidden)
-            .onChange(of: model.selectedID) { _, id in
-                if let id, !model.isInput { proxy.scrollTo(id) }
+            .onChange(of: model.selection) { _, selection in
+                if let id = selection.id, !selection.followsScroll, !model.isInput {
+                    proxy.scrollTo(id, anchor: .center)
+                }
             }
             .onChange(of: model.isInput) { _, isInput in
                 if isInput { proxy.scrollTo("top", anchor: .top) }
@@ -173,7 +184,7 @@ struct ContentView: View {
                 if let id = model.selectedID { proxy.scrollTo(id, anchor: .center) }
             }
             .onChange(of: model.unfinishedOnly) { _, _ in
-                if let id = model.selectedID, !model.isInput { proxy.scrollTo(id) }
+                if let id = model.selectedID, !model.isInput { proxy.scrollTo(id, anchor: .center) }
             }
         }
     }
