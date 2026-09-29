@@ -8,6 +8,7 @@ struct ContentView: View {
     @Environment(\.colorScheme) private var colorScheme
     private var scrollPosition: TaleScrollPosition { model.scrollPosition }
     @ViewState private var treePulse: TreePulse?
+    @ViewState private var pinningEntryID: Int64?
 
     private var palette: TalePalette { TalePalette(colorScheme: colorScheme) }
 
@@ -150,6 +151,7 @@ struct ContentView: View {
                         } else {
                             ForEach(model.visibleEntries) { entry in
                                 EntryRow(entry: entry, now: timeline.date, selected: model.selectedID == entry.id && !model.isInput,
+                                         isPinning: pinningEntryID == entry.id,
                                          select: { model.select(entry.id) },
                                          toggle: { model.select(entry.id); model.toggle(entry.id) })
                                     .background(TaleEntryAnchor(id: entry.id, position: scrollPosition))
@@ -167,6 +169,13 @@ struct ContentView: View {
                 }
             }
             .scrollIndicators(.hidden)
+            .task(id: pinningEntryID) {
+                guard pinningEntryID != nil else { return }
+                // Let the saved row render with the draft's bottom marker before pinning it.
+                do { try await Task.sleep(for: .milliseconds(30)) }
+                catch { return }
+                pinningEntryID = nil
+            }
             .onChange(of: model.selection) { _, selection in
                 if let id = selection.id, !selection.followsScroll, !model.isInput {
                     proxy.scrollTo(id, anchor: .center)
@@ -210,7 +219,7 @@ struct ContentView: View {
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 7) {
                 ComposerEditor(text: Binding(get: { model.draft }, set: { model.draft = $0 }),
-                               submit: model.submit, escape: model.leaveInput)
+                               submit: submitEntry, escape: model.leaveInput)
                     .frame(minHeight: 21)
                 HStack(alignment: .firstTextBaseline) {
                     Text(model.draft.count > EntryText.limit
@@ -229,12 +238,19 @@ struct ContentView: View {
             Spacer(minLength: 0)
         }
         .padding(.horizontal, 16).padding(.vertical, 14)
-        .background(palette.selection, in: RoundedRectangle(cornerRadius: 8))
         .overlay(alignment: .leading) {
-            RoundedRectangle(cornerRadius: 2).fill(palette.accent).frame(width: 3).padding(.vertical, 13)
+            EntryFocusMarker(pinned: false)
         }
         .accessibilityElement(children: .contain)
         .accessibilityLabel(model.kind == .todo ? "New todo" : "New note")
+    }
+
+    private func submitEntry() {
+        let previousSubmission = model.lastSubmission
+        model.submit()
+        if model.lastSubmission != previousSubmission {
+            pinningEntryID = model.selectedID
+        }
     }
 
     private var footer: some View {
@@ -309,10 +325,40 @@ private struct NewTaleSheet: View {
     }
 }
 
+/// The same quiet margin marker for a draft (bottom) and a focused entry (top).
+private struct EntryFocusMarker: View {
+    let pinned: Bool
+    @Environment(\.colorScheme) private var colorScheme
+
+    var body: some View {
+        GeometryReader { geometry in
+            let travel = max(0, geometry.size.height - 6)
+            ZStack(alignment: .top) {
+                Rectangle()
+                    .frame(width: 1, height: travel)
+                    .offset(y: pinned ? 6 : 0)
+                Image(systemName: "diamond.fill")
+                    .font(.system(size: 6))
+                    .frame(width: 6, height: 6)
+                    .offset(y: pinned ? 0 : travel)
+            }
+            .frame(width: 6, height: geometry.size.height, alignment: .top)
+        }
+        .frame(width: 6)
+        .foregroundStyle(TalePalette(colorScheme: colorScheme).accent)
+        .padding(.vertical, 14)
+        .offset(x: -2.5)
+        .animation(.easeOut(duration: 0.15), value: pinned)
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
+    }
+}
+
 private struct EntryRow: View {
     let entry: Entry
     let now: Date
     let selected: Bool
+    let isPinning: Bool
     let select: () -> Void
     let toggle: () -> Void
     @Environment(\.colorScheme) private var colorScheme
@@ -361,17 +407,7 @@ private struct EntryRow: View {
         .padding(.horizontal, 16).padding(.vertical, 14)
         .overlay(alignment: .leading) {
             if selected {
-                VStack(spacing: 0) {
-                    Image(systemName: "diamond.fill")
-                        .font(.system(size: 6))
-                        .frame(width: 6, height: 6)
-                    Rectangle().frame(width: 1)
-                }
-                .foregroundStyle(palette.accent)
-                .padding(.vertical, 14)
-                .offset(x: -2.5)
-                .allowsHitTesting(false)
-                .accessibilityHidden(true)
+                EntryFocusMarker(pinned: !isPinning)
             }
         }
         .contentShape(Rectangle())
