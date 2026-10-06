@@ -68,5 +68,9 @@ bash scripts/package-release.sh v0.1.0
 
 The ZIP is written to `build/A-Tale-of-Todos-macOS.zip`. This only packages a build; it does not publish anything. Older Swift toolchains may require selecting a full Xcode installation with `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer` before the command.
 
+## License
+
+Licensed under the [MIT License](LICENSE). The bundled Cormorant Garamond font is covered by its [SIL Open Font License](Sources/TaleApp/Resources/Fonts/OFL.txt).
+
 ## AI disclaimer
 Don't look too much at the code - I haven't (yet).
